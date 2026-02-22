@@ -1,0 +1,30 @@
+package com.example.canteengo.models
+
+data class MenuItem(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val price: Double = 0.0,
+    val category: String = "",
+    val imageUrl: String = "",
+    val isVeg: Boolean = true,
+    val isAvailable: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+enum class FoodCategory(val displayName: String, val emoji: String) {
+    SNACKS("Snacks", "🍿"),
+    SOUTH_INDIAN("South Indian", "🍛"),
+    SANDWICH("Sandwich", "🥪"),
+    MAGGI("Maggi", "🍜"),
+    BEVERAGES("Beverages", "☕"),
+    MEALS("Meals", "🍱"),
+    DESSERTS("Desserts", "🍨");
+
+    companion object {
+        fun fromString(value: String): FoodCategory? {
+            return values().find { it.name.equals(value, ignoreCase = true) }
+        }
+    }
+}
+

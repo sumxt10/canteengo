@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="cg_primary">#F97316</color>
+    <color name="cg_secondary">#FBBF24</color>
+    <color name="cg_background">#FFF7ED</color>
+
+    <!-- Neutrals -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="cg_surface">#FFFFFFFF</color>
+    <color name="cg_on_primary">#FFFFFFFF</color>
+    <color name="cg_on_secondary">#FF1F2937</color>
+
+    <!-- Status colors -->
+    <color name="cg_success">#16A34A</color>
+    <color name="cg_warning">#D97706</color>
+    <color name="cg_error">#DC2626</color>
+    <color name="cg_info">#2563EB</color>
+</resources>

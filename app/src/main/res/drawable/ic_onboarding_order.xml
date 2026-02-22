@@ -1,0 +1,47 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M100,100m-90,0a90,90 0,1 1,180 0a90,90 0,1 1,-180 0"
+        android:fillColor="#FFEDD5"/>
+
+    <!-- Shopping cart -->
+    <path
+        android:pathData="M50,60 L65,60 L85,120 L140,120 L155,75 L75,75"
+        android:strokeColor="#F97316"
+        android:strokeWidth="4"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+
+    <!-- Cart wheel 1 -->
+    <path
+        android:pathData="M95,135m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"
+        android:fillColor="#F97316"/>
+
+    <!-- Cart wheel 2 -->
+    <path
+        android:pathData="M130,135m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"
+        android:fillColor="#F97316"/>
+
+    <!-- Food in cart -->
+    <path
+        android:pathData="M95,90 Q95,82 107,82 Q120,82 120,90 Q120,98 107,98 Q95,98 95,90 Z"
+        android:fillColor="#FBBF24"/>
+
+    <!-- Plus badge -->
+    <path
+        android:pathData="M145,55m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0"
+        android:fillColor="#10B981"/>
+    <path
+        android:pathData="M145,47 L145,63 M137,55 L153,55"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"/>
+
+</vector>
+

@@ -1,0 +1,49 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M100,100m-90,0a90,90 0,1 1,180 0a90,90 0,1 1,-180 0"
+        android:fillColor="#FED7AA"/>
+
+    <!-- Phone outline -->
+    <path
+        android:pathData="M70,40 L130,40 Q140,40 140,50 L140,160 Q140,170 130,170 L70,170 Q60,170 60,160 L60,50 Q60,40 70,40 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#F97316"
+        android:strokeWidth="3"/>
+
+    <!-- Phone screen -->
+    <path
+        android:pathData="M70,55 L130,55 L130,150 L70,150 Z"
+        android:fillColor="#FFF7ED"/>
+
+    <!-- Food icon on screen -->
+    <path
+        android:pathData="M85,80 Q85,90 100,90 Q115,90 115,80 Q115,70 100,70 Q85,70 85,80 Z"
+        android:fillColor="#FBBF24"/>
+
+    <!-- Menu lines -->
+    <path
+        android:pathData="M80,105 L120,105"
+        android:strokeColor="#F97316"
+        android:strokeWidth="3"/>
+    <path
+        android:pathData="M80,115 L110,115"
+        android:strokeColor="#D1D5DB"
+        android:strokeWidth="2"/>
+    <path
+        android:pathData="M80,125 L115,125"
+        android:strokeColor="#D1D5DB"
+        android:strokeWidth="2"/>
+
+    <!-- Cart badge -->
+    <path
+        android:pathData="M125,60m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0"
+        android:fillColor="#F97316"/>
+
+</vector>
+

@@ -1,0 +1,60 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M100,100m-90,0a90,90 0,1 1,180 0a90,90 0,1 1,-180 0"
+        android:fillColor="#DCFCE7"/>
+
+    <!-- QR code frame -->
+    <path
+        android:pathData="M60,50 L140,50 Q150,50 150,60 L150,140 Q150,150 140,150 L60,150 Q50,150 50,140 L50,60 Q50,50 60,50 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#F97316"
+        android:strokeWidth="3"/>
+
+    <!-- QR code pattern -->
+    <path
+        android:pathData="M70,70 L90,70 L90,90 L70,90 Z"
+        android:fillColor="#1F2937"/>
+    <path
+        android:pathData="M110,70 L130,70 L130,90 L110,90 Z"
+        android:fillColor="#1F2937"/>
+    <path
+        android:pathData="M70,110 L90,110 L90,130 L70,130 Z"
+        android:fillColor="#1F2937"/>
+    <path
+        android:pathData="M100,100 L100,100"
+        android:strokeColor="#1F2937"
+        android:strokeWidth="8"/>
+    <path
+        android:pathData="M110,110 L120,110 L120,120 L110,120 Z"
+        android:fillColor="#1F2937"/>
+    <path
+        android:pathData="M120,120 L130,120 L130,130 L120,130 Z"
+        android:fillColor="#1F2937"/>
+
+    <!-- Check mark badge -->
+    <path
+        android:pathData="M140,45m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"
+        android:fillColor="#10B981"/>
+    <path
+        android:pathData="M132,45 L138,51 L152,37"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"/>
+
+    <!-- Token text -->
+    <path
+        android:pathData="M75,160 L125,160"
+        android:strokeColor="#F97316"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"/>
+
+</vector>
+

@@ -1,0 +1,51 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M100,100m-90,0a90,90 0,1 1,180 0a90,90 0,1 1,-180 0"
+        android:fillColor="#FEF3C7"/>
+
+    <!-- Menu card -->
+    <path
+        android:pathData="M50,50 L150,50 Q160,50 160,60 L160,150 Q160,160 150,160 L50,160 Q40,160 40,150 L40,60 Q40,50 50,50 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#F97316"
+        android:strokeWidth="2"/>
+
+    <!-- Food item 1 -->
+    <path
+        android:pathData="M60,75 Q60,65 80,65 Q100,65 100,75 Q100,85 80,85 Q60,85 60,75 Z"
+        android:fillColor="#FBBF24"/>
+
+    <!-- Food item 2 -->
+    <path
+        android:pathData="M110,75 Q110,65 130,65 Q150,65 150,75 Q150,85 130,85 Q110,85 110,75 Z"
+        android:fillColor="#FB923C"/>
+
+    <!-- Food item 3 -->
+    <path
+        android:pathData="M60,115 Q60,105 80,105 Q100,105 100,115 Q100,125 80,125 Q60,125 60,115 Z"
+        android:fillColor="#F97316"/>
+
+    <!-- Food item 4 -->
+    <path
+        android:pathData="M110,115 Q110,105 130,105 Q150,105 150,115 Q150,125 130,125 Q110,125 110,115 Z"
+        android:fillColor="#FCD34D"/>
+
+    <!-- Search icon -->
+    <path
+        android:pathData="M85,140 L115,140"
+        android:strokeColor="#9CA3AF"
+        android:strokeWidth="2"/>
+    <path
+        android:pathData="M120,140m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0"
+        android:strokeColor="#9CA3AF"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"/>
+
+</vector>
+

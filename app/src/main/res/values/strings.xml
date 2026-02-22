@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">CanteenGo</string>
+
+    <string name="get_started">Get Started</string>
+    <string name="continue_text">Continue</string>
+    <string name="student">Student</string>
+    <string name="admin">Admin</string>
+
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="logout">Logout</string>
+    <string name="create_account">Create an account</string>
+    <string name="back_to_login">Back to login</string>
+    <string name="continue_with_google">Continue with Google</string>
+
+    <string name="role_missing">We couldn\'t find your role. Please choose a role to continue.</string>
+    <string name="something_went_wrong">Something went wrong. Please try again.</string>
+
+    <!-- NOTE: default_web_client_id is auto-generated from google-services.json by the Google Services plugin -->
+    <!-- Contributors: Create your own Firebase project and place your google-services.json in app/ folder -->
+</resources>

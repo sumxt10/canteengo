@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M60,60m-55,0a55,55 0,1 1,110 0a55,55 0,1 1,-110 0"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Food tray base -->
+    <path
+        android:pathData="M25,70 L95,70 Q100,70 100,75 L100,80 Q100,85 95,85 L25,85 Q20,85 20,80 L20,75 Q20,70 25,70 Z"
+        android:fillColor="#F97316"/>
+
+    <!-- Plate/Bowl -->
+    <path
+        android:pathData="M35,55 Q35,70 60,70 Q85,70 85,55 Q85,45 60,45 Q35,45 35,55 Z"
+        android:fillColor="#FED7AA"/>
+
+    <!-- Food items - burger style -->
+    <path
+        android:pathData="M45,50 Q45,40 60,40 Q75,40 75,50 Z"
+        android:fillColor="#FBBF24"/>
+
+    <!-- Steam lines -->
+    <path
+        android:pathData="M50,35 Q48,30 50,25"
+        android:strokeColor="#F97316"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"/>
+    <path
+        android:pathData="M60,32 Q58,27 60,22"
+        android:strokeColor="#F97316"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"/>
+    <path
+        android:pathData="M70,35 Q68,30 70,25"
+        android:strokeColor="#F97316"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"/>
+
+</vector>
+

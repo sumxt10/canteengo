@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="80dp"
+    android:viewportWidth="80"
+    android:viewportHeight="80">
+
+    <!-- Background circle -->
+    <path
+        android:pathData="M40,40m-35,0a35,35 0,1 1,70 0a35,35 0,1 1,-70 0"
+        android:fillColor="#FFFFFF"
+        android:alpha="0.3"/>
+
+    <!-- Plate -->
+    <path
+        android:pathData="M20,45 Q20,55 40,55 Q60,55 60,45 Q60,38 40,38 Q20,38 20,45 Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Food dome -->
+    <path
+        android:pathData="M25,40 Q25,25 40,25 Q55,25 55,40 Z"
+        android:fillColor="#FEF3C7"/>
+
+</vector>
+
