@@ -51,6 +51,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.storage.ktx)
 
     // Google Sign-In (Credential Manager)
     implementation(libs.credentials)
@@ -59,6 +60,9 @@ dependencies {
 
     // QR / ZXing
     implementation(libs.zxing.embedded)
+
+    // Image loading
+    implementation(libs.coil)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

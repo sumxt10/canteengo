@@ -7,6 +7,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
 class UserRepository {
@@ -151,14 +152,21 @@ class UserRepository {
     suspend fun updateUserMobile(mobile: String) {
         val auth = authOrNull() ?: error("Firebase is not initialized")
         val db = dbOrNull() ?: error("Firebase is not initialized")
-        val uid = auth.currentUser?.uid ?: error("No authenticated user")
+        val user = auth.currentUser ?: error("No authenticated user")
 
-        db.collection(USERS).document(uid).update(
-            mapOf(
-                FIELD_MOBILE to mobile,
-                FIELD_UPDATED_AT to FieldValue.serverTimestamp()
-            )
-        ).await()
+        // Use set with merge to create document if it doesn't exist (for Google Sign-In users)
+        val data = hashMapOf<String, Any?>(
+            FIELD_UID to user.uid,
+            FIELD_ROLE to UserRole.ADMIN.name,
+            FIELD_EMAIL to user.email,
+            FIELD_NAME to (user.displayName ?: ""),
+            FIELD_MOBILE to mobile,
+            FIELD_IS_ACTIVE to true,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+        )
+
+        db.collection(USERS).document(user.uid).set(data, SetOptions.merge()).await()
     }
 
     suspend fun updateStudentDetails(
@@ -169,17 +177,24 @@ class UserRepository {
     ) {
         val auth = authOrNull() ?: error("Firebase is not initialized")
         val db = dbOrNull() ?: error("Firebase is not initialized")
-        val uid = auth.currentUser?.uid ?: error("No authenticated user")
+        val user = auth.currentUser ?: error("No authenticated user")
 
-        db.collection(USERS).document(uid).update(
-            mapOf(
-                FIELD_MOBILE to mobile,
-                FIELD_LIBRARY_CARD_NUMBER to libraryCardNumber,
-                FIELD_DEPARTMENT to department,
-                FIELD_DIVISION to division,
-                FIELD_UPDATED_AT to FieldValue.serverTimestamp()
-            )
-        ).await()
+        // Use set with merge to create document if it doesn't exist (for Google Sign-In users)
+        val data = hashMapOf<String, Any?>(
+            FIELD_UID to user.uid,
+            FIELD_ROLE to UserRole.STUDENT.name,
+            FIELD_EMAIL to user.email,
+            FIELD_NAME to (user.displayName ?: ""),
+            FIELD_MOBILE to mobile,
+            FIELD_LIBRARY_CARD_NUMBER to libraryCardNumber,
+            FIELD_DEPARTMENT to department,
+            FIELD_DIVISION to division,
+            FIELD_IS_ACTIVE to true,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+        )
+
+        db.collection(USERS).document(user.uid).set(data, SetOptions.merge()).await()
     }
 
     suspend fun hasUserMobile(): Boolean {
@@ -191,10 +206,42 @@ class UserRepository {
             val doc = db.collection(USERS).document(uid).get().await()
             val mobile = doc.getString(FIELD_MOBILE)
             !mobile.isNullOrBlank()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
+
+    /**
+     * Optimized method to get user role and mobile status in a single Firestore read.
+     * Returns a data class with both values to avoid multiple network calls.
+     */
+    suspend fun getUserProfileStatus(): UserProfileStatus {
+        val auth = authOrNull() ?: return UserProfileStatus(null, false)
+        val db = dbOrNull() ?: return UserProfileStatus(null, false)
+        val uid = auth.currentUser?.uid ?: return UserProfileStatus(null, false)
+
+        return try {
+            val doc = db.collection(USERS).document(uid).get().await()
+            if (!doc.exists()) {
+                UserProfileStatus(null, false)
+            } else {
+                val role = UserRole.from(doc.getString(FIELD_ROLE))
+                val mobile = doc.getString(FIELD_MOBILE)
+                val hasMobile = !mobile.isNullOrBlank()
+                UserProfileStatus(role, hasMobile)
+            }
+        } catch (_: Exception) {
+            UserProfileStatus(null, false)
+        }
+    }
+
+    /**
+     * Data class representing user profile status for optimized authentication flow.
+     */
+    data class UserProfileStatus(
+        val role: UserRole?,
+        val hasCompletedProfile: Boolean
+    )
 
     companion object {
         private const val USERS = "users"

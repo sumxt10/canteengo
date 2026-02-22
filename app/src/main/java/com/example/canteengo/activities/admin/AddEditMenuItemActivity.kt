@@ -1,16 +1,23 @@
 package com.example.canteengo.activities.admin
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import coil.load
 import com.example.canteengo.databinding.ActivityAddEditMenuItemBinding
 import com.example.canteengo.models.FoodCategory
 import com.example.canteengo.models.MenuItem
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.utils.toast
+import com.google.firebase.FirebaseApp
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 class AddEditMenuItemActivity : AppCompatActivity() {
 
@@ -19,6 +26,18 @@ class AddEditMenuItemActivity : AppCompatActivity() {
 
     private var itemId: String? = null
     private var existingItem: MenuItem? = null
+    private var selectedImageUri: Uri? = null
+    private var uploadedImageUrl: String = ""
+
+    private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            selectedImageUri = it
+            binding.ivItemImage.load(it) {
+                crossfade(true)
+            }
+            binding.uploadPlaceholder.visibility = View.GONE
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +92,15 @@ class AddEditMenuItemActivity : AppCompatActivity() {
                     )
                     binding.switchVeg.isChecked = item.isVeg
                     binding.switchAvailable.isChecked = item.isAvailable
+
+                    // Load existing image
+                    if (item.imageUrl.isNotEmpty()) {
+                        uploadedImageUrl = item.imageUrl
+                        binding.ivItemImage.load(item.imageUrl) {
+                            crossfade(true)
+                        }
+                        binding.uploadPlaceholder.visibility = View.GONE
+                    }
                 }
             } catch (e: Exception) {
                 toast("Failed to load item")
@@ -113,20 +141,28 @@ class AddEditMenuItemActivity : AppCompatActivity() {
         // Find category enum
         val category = FoodCategory.values().find { it.displayName == categoryDisplay }?.name ?: categoryDisplay.uppercase()
 
-        val menuItem = MenuItem(
-            id = itemId ?: "",
-            name = name,
-            description = description,
-            price = price,
-            category = category,
-            imageUrl = "",
-            isVeg = isVeg,
-            isAvailable = isAvailable
-        )
-
         setLoading(true)
+
         lifecycleScope.launch {
             try {
+                // Upload image if selected
+                val imageUrl = if (selectedImageUri != null) {
+                    uploadImageToStorage(selectedImageUri!!)
+                } else {
+                    uploadedImageUrl // Use existing image URL
+                }
+
+                val menuItem = MenuItem(
+                    id = itemId ?: "",
+                    name = name,
+                    description = description,
+                    price = price,
+                    category = category,
+                    imageUrl = imageUrl,
+                    isVeg = isVeg,
+                    isAvailable = isAvailable
+                )
+
                 if (itemId != null) {
                     menuRepo.updateMenuItem(menuItem)
                     toast("Item updated successfully")
@@ -140,6 +176,27 @@ class AddEditMenuItemActivity : AppCompatActivity() {
             } finally {
                 setLoading(false)
             }
+        }
+    }
+
+    private suspend fun uploadImageToStorage(uri: Uri): String {
+        return try {
+            FirebaseApp.getInstance()
+            val storage = FirebaseStorage.getInstance()
+            val fileName = "menu_images/${UUID.randomUUID()}.jpg"
+            val ref = storage.reference.child(fileName)
+
+            binding.uploadProgress.visibility = View.VISIBLE
+
+            ref.putFile(uri).await()
+            val downloadUrl = ref.downloadUrl.await()
+
+            binding.uploadProgress.visibility = View.GONE
+
+            downloadUrl.toString()
+        } catch (e: Exception) {
+            binding.uploadProgress.visibility = View.GONE
+            throw Exception("Image upload failed: ${e.message}")
         }
     }
 

@@ -23,6 +23,7 @@
         <activity android:name=".activities.OnboardingActivity" android:exported="false" />
         <activity android:name=".activities.GetStartedActivity" android:exported="false" />
         <activity android:name=".activities.PhoneInputActivity" android:exported="false" />
+        <activity android:name=".activities.GoogleSignupDetailsActivity" android:exported="false" />
 
         <activity
             android:name=".activities.SplashActivity"
@@ -44,6 +45,7 @@
         <activity android:name=".activities.student.OrderTrackingActivity" android:exported="false" />
         <activity android:name=".activities.student.StudentOrdersActivity" android:exported="false" />
         <activity android:name=".activities.student.StudentProfileActivity" android:exported="false" />
+        <activity android:name=".activities.student.FoodDetailsActivity" android:exported="false" />
 
         <!-- Admin Activities -->
         <activity android:name=".activities.admin.AdminOrdersActivity" android:exported="false" />

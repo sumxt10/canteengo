@@ -2,6 +2,7 @@ package com.example.canteengo.activities.student
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.canteengo.R
@@ -26,8 +27,11 @@ class StudentProfileActivity : AppCompatActivity() {
 
         setupToolbar()
         setupBottomNav()
-        loadProfile()
         setupLogout()
+
+        // Show loading state initially
+        showLoading(true)
+        loadProfile()
     }
 
     private fun setupToolbar() {
@@ -63,6 +67,7 @@ class StudentProfileActivity : AppCompatActivity() {
             try {
                 val profile = userRepository.getCurrentStudentProfile()
                 profile?.let {
+                    // Bind all values
                     binding.tvName.text = it.name
                     binding.tvEmail.text = it.email
                     binding.tvLibraryCard.text = it.libraryCardNumber.ifEmpty { "Not set" }
@@ -76,10 +81,19 @@ class StudentProfileActivity : AppCompatActivity() {
                         .joinToString("")
                     binding.tvInitials.text = initials.ifEmpty { "S" }
                 }
+
+                // Show content after data is loaded
+                showLoading(false)
             } catch (e: Exception) {
-                // Handle error
+                // Show content even on error, with empty state
+                showLoading(false)
             }
         }
+    }
+
+    private fun showLoading(loading: Boolean) {
+        binding.loadingContainer.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.contentScrollView.visibility = if (loading) View.GONE else View.VISIBLE
     }
 
     private fun setupLogout() {

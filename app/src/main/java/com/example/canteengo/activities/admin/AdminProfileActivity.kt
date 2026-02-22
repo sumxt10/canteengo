@@ -2,6 +2,7 @@ package com.example.canteengo.activities.admin
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.canteengo.R
@@ -26,6 +27,9 @@ class AdminProfileActivity : AppCompatActivity() {
 
         setupToolbar()
         setupBottomNav()
+
+        // Show loading state initially
+        showLoading(true)
         loadProfileData()
 
         binding.btnLogout.setOnClickListener {
@@ -81,9 +85,19 @@ class AdminProfileActivity : AppCompatActivity() {
                     binding.tvMobile.text = it.mobile.ifEmpty { "Not provided" }
                     binding.tvInitials.text = it.name.firstOrNull()?.uppercase() ?: "A"
                 }
+
+                // Show content after data is loaded
+                showLoading(false)
             } catch (e: Exception) {
+                // Show content even on error
+                showLoading(false)
                 toast("Failed to load profile")
             }
         }
+    }
+
+    private fun showLoading(loading: Boolean) {
+        binding.loadingContainer.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.contentScrollView.visibility = if (loading) View.GONE else View.VISIBLE
     }
 }

@@ -148,6 +148,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    app:hintTextColor="@color/cg_text_secondary"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -158,7 +159,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="@string/email"
-                        android:textColor="#111827"
+                        android:textColor="@color/cg_text_dark"
                         android:inputType="textEmailAddress" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -169,6 +170,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     app:endIconMode="password_toggle"
+                    app:hintTextColor="@color/cg_text_secondary"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -179,7 +181,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="@string/password"
-                        android:textColor="#111827"
+                        android:textColor="@color/cg_text_dark"
                         android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
 

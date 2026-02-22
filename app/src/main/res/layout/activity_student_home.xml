@@ -111,6 +111,7 @@
                         android:layout_marginStart="12dp"
                         android:background="@android:color/transparent"
                         android:hint="Search for food..."
+                        android:textColor="#0f172a"
                         android:textColorHint="#9CA3AF"
                         android:inputType="text"
                         android:maxLines="1" />

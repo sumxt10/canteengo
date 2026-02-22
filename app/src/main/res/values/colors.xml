@@ -11,6 +11,8 @@
     <color name="cg_surface">#FFFFFFFF</color>
     <color name="cg_on_primary">#FFFFFFFF</color>
     <color name="cg_on_secondary">#FF1F2937</color>
+    <color name="cg_text_dark">#0f172a</color>
+    <color name="cg_text_secondary">#374151</color>
 
     <!-- Status colors -->
     <color name="cg_success">#16A34A</color>

@@ -32,6 +32,8 @@ class StudentHomeActivity : AppCompatActivity() {
 
     private var allMenuItems: List<MenuItem> = emptyList()
     private var selectedCategory: FoodCategory = FoodCategory.SNACKS
+    private var currentSearchQuery: String = ""
+    private var showAllItems: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,8 +92,17 @@ class StudentHomeActivity : AppCompatActivity() {
                 toast("${menuItem.name} added to cart")
             },
             onItemClick = { menuItem ->
-                // Could navigate to item details
-                toast(menuItem.description)
+                // Navigate to food details screen
+                val intent = Intent(this, FoodDetailsActivity::class.java)
+                intent.putExtra("menu_item_id", menuItem.id)
+                intent.putExtra("menu_item_name", menuItem.name)
+                intent.putExtra("menu_item_description", menuItem.description)
+                intent.putExtra("menu_item_price", menuItem.price)
+                intent.putExtra("menu_item_category", menuItem.category)
+                intent.putExtra("menu_item_image_url", menuItem.imageUrl)
+                intent.putExtra("menu_item_is_veg", menuItem.isVeg)
+                intent.putExtra("menu_item_is_available", menuItem.isAvailable)
+                startActivity(intent)
             }
         )
 
@@ -130,6 +141,9 @@ class StudentHomeActivity : AppCompatActivity() {
                 val profile = userRepository.getCurrentStudentProfile()
                 profile?.let {
                     binding.tvGreeting.text = "Hey ${it.name.split(" ").first()}! 👋"
+                    // Set profile initial
+                    val initial = it.name.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
+                    binding.tvProfileInitial.text = initial
                 }
             } catch (e: Exception) {
                 // Use default greeting
@@ -149,9 +163,22 @@ class StudentHomeActivity : AppCompatActivity() {
     }
 
     private fun filterMenuItems() {
-        val filtered = allMenuItems.filter {
-            it.category.equals(selectedCategory.name, ignoreCase = true)
+        var filtered = allMenuItems
+
+        // Apply search filter if query is not empty
+        if (currentSearchQuery.isNotEmpty()) {
+            filtered = filtered.filter { item ->
+                item.name.contains(currentSearchQuery, ignoreCase = true) ||
+                item.category.contains(currentSearchQuery, ignoreCase = true) ||
+                item.description.contains(currentSearchQuery, ignoreCase = true)
+            }
+        } else if (!showAllItems) {
+            // Apply category filter only if not searching and not showing all
+            filtered = filtered.filter {
+                it.category.equals(selectedCategory.name, ignoreCase = true)
+            }
         }
+
         menuItemAdapter.submitList(filtered)
     }
 

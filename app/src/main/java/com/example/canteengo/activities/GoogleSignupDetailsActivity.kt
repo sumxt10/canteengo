@@ -8,9 +8,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.canteengo.activities.admin.AdminDashboardActivity
 import com.example.canteengo.activities.student.StudentHomeActivity
 import com.example.canteengo.databinding.ActivityGoogleSignupDetailsBinding
-import com.example.canteengo.models.AdminProfile
-import com.example.canteengo.models.StudentProfile
 import com.example.canteengo.repository.AuthRepository
+import com.example.canteengo.repository.LinkCredentialResult
 import com.example.canteengo.repository.UserRepository
 import com.example.canteengo.utils.hideKeyboard
 import com.example.canteengo.utils.toast
@@ -43,15 +42,24 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
             binding.tilLibraryCard.visibility = View.VISIBLE
             binding.tilDepartment.visibility = View.VISIBLE
             binding.tilDivision.visibility = View.VISIBLE
+            binding.tvStudentDetailsLabel.visibility = View.VISIBLE
             binding.tvTitle.text = "Complete Your Profile"
             binding.tvSubtitle.text = "Please provide your student details to continue"
         } else {
             binding.tilLibraryCard.visibility = View.GONE
             binding.tilDepartment.visibility = View.GONE
             binding.tilDivision.visibility = View.GONE
+            binding.tvStudentDetailsLabel.visibility = View.GONE
             binding.tvTitle.text = "Complete Your Profile"
-            binding.tvSubtitle.text = "Please provide your phone number to continue"
+            binding.tvSubtitle.text = "Please provide your phone number and create a password"
         }
+
+        // Password fields are always visible for both roles
+        binding.dividerPassword.visibility = View.VISIBLE
+        binding.tvPasswordLabel.visibility = View.VISIBLE
+        binding.tvPasswordHint.visibility = View.VISIBLE
+        binding.tilPassword.visibility = View.VISIBLE
+        binding.tilConfirmPassword.visibility = View.VISIBLE
 
         binding.btnContinue.setOnClickListener {
             hideKeyboard()
@@ -68,12 +76,16 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
         val libraryCard = binding.etLibraryCard.text?.toString()?.trim().orEmpty()
         val department = binding.etDepartment.text?.toString()?.trim().orEmpty()
         val division = binding.etDivision.text?.toString()?.trim().orEmpty()
+        val password = binding.etPassword.text?.toString().orEmpty()
+        val confirmPassword = binding.etConfirmPassword.text?.toString().orEmpty()
 
         // Clear previous errors
         binding.tilMobile.error = null
         binding.tilLibraryCard.error = null
         binding.tilDepartment.error = null
         binding.tilDivision.error = null
+        binding.tilPassword.error = null
+        binding.tilConfirmPassword.error = null
 
         var hasError = false
 
@@ -100,6 +112,23 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
             hasError = true
         }
 
+        // Password validation
+        if (password.isBlank()) {
+            binding.tilPassword.error = "Password is required"
+            hasError = true
+        } else if (password.length < 6) {
+            binding.tilPassword.error = "Password must be at least 6 characters"
+            hasError = true
+        }
+
+        if (confirmPassword.isBlank()) {
+            binding.tilConfirmPassword.error = "Please confirm your password"
+            hasError = true
+        } else if (password != confirmPassword) {
+            binding.tilConfirmPassword.error = "Passwords do not match"
+            hasError = true
+        }
+
         if (hasError) return
 
         setLoading(true)
@@ -120,20 +149,65 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
                     }
                 }
 
-                // Update the user's profile with all details
-                userRepository.updateStudentDetails(
-                    mobile = fullMobile,
-                    libraryCardNumber = libraryCard,
-                    department = department,
-                    division = division
-                )
+                // Get the current user's email for credential linking
+                val userEmail = authRepository.currentUser()?.email
+                if (userEmail.isNullOrBlank()) {
+                    toast("Unable to get user email. Please try again.")
+                    setLoading(false)
+                    return@launch
+                }
 
-                toast("Profile completed!")
+                // Link email/password credential to the Google account using Firebase Auth
+                val linkResult = authRepository.linkEmailPasswordCredential(userEmail, password)
 
-                startActivity(Intent(this@GoogleSignupDetailsActivity, StudentHomeActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                })
-                finish()
+                when (linkResult) {
+                    is LinkCredentialResult.Success -> {
+                        // Credential linked successfully, now save the profile data to Firestore
+                        userRepository.updateStudentDetails(
+                            mobile = fullMobile,
+                            libraryCardNumber = libraryCard,
+                            department = department,
+                            division = division
+                        )
+
+                        toast("Profile completed! You can now login with email/password or Google.")
+
+                        startActivity(Intent(this@GoogleSignupDetailsActivity, StudentHomeActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        finish()
+                    }
+                    is LinkCredentialResult.WeakPassword -> {
+                        binding.tilPassword.error = linkResult.message
+                        setLoading(false)
+                    }
+                    is LinkCredentialResult.CredentialAlreadyInUse -> {
+                        // Email/password might already be linked, proceed with profile update
+                        if (authRepository.hasEmailPasswordProvider()) {
+                            // Already has email/password, just update profile
+                            userRepository.updateStudentDetails(
+                                mobile = fullMobile,
+                                libraryCardNumber = libraryCard,
+                                department = department,
+                                division = division
+                            )
+
+                            toast("Profile completed!")
+
+                            startActivity(Intent(this@GoogleSignupDetailsActivity, StudentHomeActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            })
+                            finish()
+                        } else {
+                            binding.tilPassword.error = linkResult.message
+                            setLoading(false)
+                        }
+                    }
+                    is LinkCredentialResult.Error -> {
+                        toast("Error: ${linkResult.message}")
+                        setLoading(false)
+                    }
+                }
 
             } catch (e: Exception) {
                 toast("Error: ${e.message}")
@@ -144,18 +218,41 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
 
     private fun saveAdminDetails() {
         val mobile = binding.etMobile.text?.toString()?.trim().orEmpty()
+        val password = binding.etPassword.text?.toString().orEmpty()
+        val confirmPassword = binding.etConfirmPassword.text?.toString().orEmpty()
 
         binding.tilMobile.error = null
+        binding.tilPassword.error = null
+        binding.tilConfirmPassword.error = null
+
+        var hasError = false
 
         if (mobile.isBlank()) {
             binding.tilMobile.error = "Mobile number is required"
-            return
+            hasError = true
+        } else if (mobile.length != 10 || !mobile.all { it.isDigit() }) {
+            binding.tilMobile.error = "Enter a valid 10-digit mobile number"
+            hasError = true
         }
 
-        if (mobile.length != 10 || !mobile.all { it.isDigit() }) {
-            binding.tilMobile.error = "Enter a valid 10-digit mobile number"
-            return
+        // Password validation
+        if (password.isBlank()) {
+            binding.tilPassword.error = "Password is required"
+            hasError = true
+        } else if (password.length < 6) {
+            binding.tilPassword.error = "Password must be at least 6 characters"
+            hasError = true
         }
+
+        if (confirmPassword.isBlank()) {
+            binding.tilConfirmPassword.error = "Please confirm your password"
+            hasError = true
+        } else if (password != confirmPassword) {
+            binding.tilConfirmPassword.error = "Passwords do not match"
+            hasError = true
+        }
+
+        if (hasError) return
 
         setLoading(true)
         lifecycleScope.launch {
@@ -175,15 +272,55 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
                     }
                 }
 
-                // Update the user's mobile number
-                userRepository.updateUserMobile(fullMobile)
+                // Get the current user's email for credential linking
+                val userEmail = authRepository.currentUser()?.email
+                if (userEmail.isNullOrBlank()) {
+                    toast("Unable to get user email. Please try again.")
+                    setLoading(false)
+                    return@launch
+                }
 
-                toast("Profile completed!")
+                // Link email/password credential to the Google account using Firebase Auth
+                val linkResult = authRepository.linkEmailPasswordCredential(userEmail, password)
 
-                startActivity(Intent(this@GoogleSignupDetailsActivity, AdminDashboardActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                })
-                finish()
+                when (linkResult) {
+                    is LinkCredentialResult.Success -> {
+                        // Credential linked successfully, now save the profile data to Firestore
+                        userRepository.updateUserMobile(fullMobile)
+
+                        toast("Profile completed! You can now login with email/password or Google.")
+
+                        startActivity(Intent(this@GoogleSignupDetailsActivity, AdminDashboardActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        finish()
+                    }
+                    is LinkCredentialResult.WeakPassword -> {
+                        binding.tilPassword.error = linkResult.message
+                        setLoading(false)
+                    }
+                    is LinkCredentialResult.CredentialAlreadyInUse -> {
+                        // Email/password might already be linked, proceed with profile update
+                        if (authRepository.hasEmailPasswordProvider()) {
+                            // Already has email/password, just update profile
+                            userRepository.updateUserMobile(fullMobile)
+
+                            toast("Profile completed!")
+
+                            startActivity(Intent(this@GoogleSignupDetailsActivity, AdminDashboardActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            })
+                            finish()
+                        } else {
+                            binding.tilPassword.error = linkResult.message
+                            setLoading(false)
+                        }
+                    }
+                    is LinkCredentialResult.Error -> {
+                        toast("Error: ${linkResult.message}")
+                        setLoading(false)
+                    }
+                }
 
             } catch (e: Exception) {
                 toast("Error: ${e.message}")
@@ -197,3 +334,4 @@ class GoogleSignupDetailsActivity : AppCompatActivity() {
         binding.btnContinue.isEnabled = !loading
     }
 }
+

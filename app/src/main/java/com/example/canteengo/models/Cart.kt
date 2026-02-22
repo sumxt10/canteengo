@@ -15,9 +15,10 @@ object CartManager {
 
     val subtotal: Double get() = _items.sumOf { it.totalPrice }
 
-    val packingCharge: Double = 5.0
+    // Dynamic 5% handling charge instead of fixed packing charge
+    val handlingCharge: Double get() = subtotal * 0.05
 
-    val total: Double get() = subtotal + packingCharge
+    val total: Double get() = subtotal + handlingCharge
 
     fun addItem(menuItem: MenuItem) {
         val existing = _items.find { it.menuItem.id == menuItem.id }

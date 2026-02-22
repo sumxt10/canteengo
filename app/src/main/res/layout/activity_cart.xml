@@ -171,14 +171,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Packing Charge"
+                    android:text="Handling Charge (5%)"
                     android:textColor="#6B7280" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/tvPackingCharge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="₹5"
+                    android:text="₹0"
                     android:textColor="@color/black" />
 
             </LinearLayout>

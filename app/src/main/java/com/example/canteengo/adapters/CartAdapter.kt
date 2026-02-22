@@ -26,15 +26,23 @@ class CartAdapter(
 
             binding.btnMinus.setOnClickListener {
                 CartManager.decrementQuantity(item.menuItem.id)
-                if (CartManager.getQuantity(item.menuItem.id) == 0) {
+                val newQuantity = CartManager.getQuantity(item.menuItem.id)
+                if (newQuantity == 0) {
                     onRemove()
                 } else {
+                    // Update quantity display immediately
+                    binding.tvQuantity.text = newQuantity.toString()
+                    binding.tvTotalPrice.text = "₹${(item.menuItem.price * newQuantity).toInt()}"
                     onQuantityChange()
                 }
             }
 
             binding.btnPlus.setOnClickListener {
                 CartManager.incrementQuantity(item.menuItem.id)
+                val newQuantity = CartManager.getQuantity(item.menuItem.id)
+                // Update quantity display immediately
+                binding.tvQuantity.text = newQuantity.toString()
+                binding.tvTotalPrice.text = "₹${(item.menuItem.price * newQuantity).toInt()}"
                 onQuantityChange()
             }
 

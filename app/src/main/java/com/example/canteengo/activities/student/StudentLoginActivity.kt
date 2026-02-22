@@ -102,21 +102,15 @@ class StudentLoginActivity : AppCompatActivity() {
                 result.fold(
                     onSuccess = { _ ->
                         try {
-                            // Check if user already has a complete profile with mobile number
-                            val existingRole = userRepo.getCurrentUserRole()
-                            val hasMobile = userRepo.hasUserMobile()
+                            // Optimized: Single Firestore read to get both role and mobile status
+                            val profileStatus = userRepo.getUserProfileStatus()
 
-                            if (existingRole != null && hasMobile) {
-                                // Existing user with complete profile - go to home
-                                ensureRoleAndRoute()
+                            if (profileStatus.role != null && profileStatus.hasCompletedProfile) {
+                                // Existing user with complete profile - go directly to home
+                                navigateToHome()
                             } else {
                                 // New user OR incomplete profile - redirect to collect all student details
-                                // Don't create profile here - it will be created in GoogleSignupDetailsActivity
-                                val intent = Intent(this@StudentLoginActivity, com.example.canteengo.activities.GoogleSignupDetailsActivity::class.java)
-                                intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_STUDENT, true)
-                                intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_NEW_USER, existingRole == null)
-                                startActivity(intent)
-                                finish()
+                                navigateToCompleteProfile(isNewUser = profileStatus.role == null)
                             }
                         } catch (e: Exception) {
                             toast("Error: ${e.message}")
@@ -133,6 +127,23 @@ class StudentLoginActivity : AppCompatActivity() {
                 setLoading(false)
             }
         }
+    }
+
+    private fun navigateToHome() {
+        RolePrefs.clear(this)
+        startActivity(Intent(this, StudentHomeActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        })
+        finish()
+    }
+
+    private fun navigateToCompleteProfile(isNewUser: Boolean) {
+        val intent = Intent(this, com.example.canteengo.activities.GoogleSignupDetailsActivity::class.java)
+        intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_STUDENT, true)
+        intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_NEW_USER, isNewUser)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     private fun validate(email: String, pass: String): Boolean {
@@ -169,9 +180,7 @@ class StudentLoginActivity : AppCompatActivity() {
     }
 
     private suspend fun ensureRoleAndRoute() {
-        RolePrefs.clear(this)
-        startActivity(Intent(this, StudentHomeActivity::class.java))
-        finish()
+        navigateToHome()
     }
 
     private fun setLoading(loading: Boolean) {

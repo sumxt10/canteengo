@@ -121,10 +121,19 @@ class AdminMenuActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 menuRepo.toggleAvailability(item.id, isAvailable)
+
+                // Update local list to reflect the change immediately
+                val currentList = menuAdapter.currentList.toMutableList()
+                val index = currentList.indexOfFirst { it.id == item.id }
+                if (index != -1) {
+                    currentList[index] = currentList[index].copy(isAvailable = isAvailable)
+                    menuAdapter.submitList(currentList)
+                }
+
                 toast("${item.name} is now ${if (isAvailable) "available" else "unavailable"}")
             } catch (e: Exception) {
                 toast("Failed to update: ${e.message}")
-                loadMenuItems() // Refresh to reset switch
+                loadMenuItems() // Refresh to reset switch on error
             }
         }
     }

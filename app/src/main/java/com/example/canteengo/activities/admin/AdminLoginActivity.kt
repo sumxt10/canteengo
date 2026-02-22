@@ -101,21 +101,15 @@ class AdminLoginActivity : AppCompatActivity() {
                 result.fold(
                     onSuccess = { _ ->
                         try {
-                            // Check if user already has a complete profile with mobile number
-                            val existingRole = userRepo.getCurrentUserRole()
-                            val hasMobile = userRepo.hasUserMobile()
+                            // Optimized: Single Firestore read to get both role and mobile status
+                            val profileStatus = userRepo.getUserProfileStatus()
 
-                            if (existingRole != null && hasMobile) {
-                                // Existing user with complete profile - go to dashboard
-                                ensureRoleAndRoute()
+                            if (profileStatus.role != null && profileStatus.hasCompletedProfile) {
+                                // Existing user with complete profile - go directly to dashboard
+                                navigateToDashboard()
                             } else {
                                 // New user OR incomplete profile - redirect to collect phone number
-                                // Don't create profile here - it will be created in GoogleSignupDetailsActivity
-                                val intent = Intent(this@AdminLoginActivity, com.example.canteengo.activities.GoogleSignupDetailsActivity::class.java)
-                                intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_STUDENT, false)
-                                intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_NEW_USER, existingRole == null)
-                                startActivity(intent)
-                                finish()
+                                navigateToCompleteProfile(isNewUser = profileStatus.role == null)
                             }
                         } catch (e: Exception) {
                             toast("Error setting up profile: ${e.message}")
@@ -132,6 +126,23 @@ class AdminLoginActivity : AppCompatActivity() {
                 setLoading(false)
             }
         }
+    }
+
+    private fun navigateToDashboard() {
+        RolePrefs.clear(this)
+        startActivity(Intent(this, AdminDashboardActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        })
+        finish()
+    }
+
+    private fun navigateToCompleteProfile(isNewUser: Boolean) {
+        val intent = Intent(this, com.example.canteengo.activities.GoogleSignupDetailsActivity::class.java)
+        intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_STUDENT, false)
+        intent.putExtra(com.example.canteengo.activities.GoogleSignupDetailsActivity.EXTRA_IS_NEW_USER, isNewUser)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     private fun validate(email: String, pass: String): Boolean {
@@ -168,9 +179,7 @@ class AdminLoginActivity : AppCompatActivity() {
     }
 
     private suspend fun ensureRoleAndRoute() {
-        RolePrefs.clear(this)
-        startActivity(Intent(this, AdminDashboardActivity::class.java))
-        finish()
+        navigateToDashboard()
     }
 
     private fun setLoading(loading: Boolean) {

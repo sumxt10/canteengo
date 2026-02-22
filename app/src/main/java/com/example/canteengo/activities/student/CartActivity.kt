@@ -67,7 +67,7 @@ class CartActivity : AppCompatActivity() {
             binding.cartContent.visibility = View.VISIBLE
 
             binding.tvSubtotal.text = "₹${CartManager.subtotal.toInt()}"
-            binding.tvPackingCharge.text = "₹${CartManager.packingCharge.toInt()}"
+            binding.tvPackingCharge.text = "₹${CartManager.handlingCharge.toInt()}"
             binding.tvTotal.text = "₹${CartManager.total.toInt()}"
             binding.btnPlaceOrder.text = "Place Order • ₹${CartManager.total.toInt()}"
         }

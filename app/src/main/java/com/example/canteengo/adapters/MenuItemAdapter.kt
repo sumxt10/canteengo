@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import com.example.canteengo.R
 import com.example.canteengo.databinding.ItemMenuFoodBinding
 import com.example.canteengo.models.CartManager
@@ -24,6 +25,17 @@ class MenuItemAdapter(
             binding.tvName.text = item.name
             binding.tvDescription.text = item.description
             binding.tvPrice.text = "₹${item.price.toInt()}"
+
+            // Load image if available
+            if (item.imageUrl.isNotEmpty()) {
+                binding.ivFoodImage.load(item.imageUrl) {
+                    crossfade(true)
+                    placeholder(R.drawable.ic_food_item_placeholder)
+                    error(R.drawable.ic_food_item_placeholder)
+                }
+            } else {
+                binding.ivFoodImage.setImageResource(R.drawable.ic_food_item_placeholder)
+            }
 
             // Veg/Non-veg indicator
             binding.ivVegBadge.setImageResource(
