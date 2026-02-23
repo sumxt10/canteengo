@@ -98,7 +98,7 @@ class PickupTimeActivity : AppCompatActivity() {
                     studentName = profile?.name ?: "Student",
                     items = orderItems,
                     subtotal = CartManager.subtotal,
-                    packingCharge = CartManager.packingCharge,
+                    handlingCharge = CartManager.handlingCharge,
                     totalAmount = CartManager.total,
                     pickupTime = selectedTime
                 )
@@ -126,4 +126,3 @@ class PickupTimeActivity : AppCompatActivity() {
         }
     }
 }
-

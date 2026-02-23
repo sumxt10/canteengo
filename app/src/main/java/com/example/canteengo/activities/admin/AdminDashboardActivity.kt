@@ -99,6 +99,11 @@ class AdminDashboardActivity : AppCompatActivity() {
 
     private fun setupOrdersRecyclerView() {
         orderAdapter = AdminOrderAdapter(
+            onItemClick = { order ->
+                val intent = Intent(this, AdminOrderDetailsActivity::class.java)
+                intent.putExtra("order_id", order.orderId)
+                startActivity(intent)
+            },
             onAcceptClick = { order -> updateOrderStatus(order, OrderStatus.ACCEPTED) },
             onPreparingClick = { order -> updateOrderStatus(order, OrderStatus.PREPARING) },
             onReadyClick = { order -> updateOrderStatus(order, OrderStatus.READY) },

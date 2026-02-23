@@ -74,11 +74,21 @@ class MenuRepository {
             val existing = db.collection(MENU_ITEMS).limit(1).get().await()
             if (!existing.isEmpty) return true // Already seeded
 
-            // Add all sample items to Firestore
+            // Add all sample items to Firestore using explicit map
             val batch = db.batch()
             getSampleMenuItems().forEach { item ->
                 val docRef = db.collection(MENU_ITEMS).document()
-                batch.set(docRef, item.copy(id = docRef.id))
+                val itemMap = hashMapOf(
+                    "name" to item.name,
+                    "description" to item.description,
+                    "price" to item.price,
+                    "category" to item.category,
+                    "imageUrl" to item.imageUrl,
+                    "isVeg" to item.isVeg,
+                    "isAvailable" to item.isAvailable,
+                    "createdAt" to item.createdAt
+                )
+                batch.set(docRef, itemMap)
             }
             batch.commit().await()
             true

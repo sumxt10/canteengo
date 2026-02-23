@@ -10,10 +10,14 @@ import com.example.canteengo.R
 import com.example.canteengo.adapters.AdminOrderAdapter
 import com.example.canteengo.databinding.ActivityAdminOrdersBinding
 import com.example.canteengo.models.Order
+import com.example.canteengo.models.OrderItem
 import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.utils.toast
 import com.google.android.material.tabs.TabLayout
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 
 class AdminOrdersActivity : AppCompatActivity() {
@@ -24,6 +28,7 @@ class AdminOrdersActivity : AppCompatActivity() {
 
     private var allOrders: List<Order> = emptyList()
     private var currentTab = 0
+    private var ordersListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,12 +39,17 @@ class AdminOrdersActivity : AppCompatActivity() {
         setupTabs()
         setupRecyclerView()
         setupBottomNav()
-        loadOrders()
+        startRealtimeOrdersListener()
     }
 
     override fun onResume() {
         super.onResume()
-        loadOrders()
+        startRealtimeOrdersListener()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ordersListener?.remove()
     }
 
     private fun setupToolbar() {
@@ -59,6 +69,11 @@ class AdminOrdersActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         orderAdapter = AdminOrderAdapter(
+            onItemClick = { order ->
+                val intent = Intent(this, AdminOrderDetailsActivity::class.java)
+                intent.putExtra("order_id", order.orderId)
+                startActivity(intent)
+            },
             onAcceptClick = { order -> updateOrderStatus(order, OrderStatus.ACCEPTED) },
             onPreparingClick = { order -> updateOrderStatus(order, OrderStatus.PREPARING) },
             onReadyClick = { order -> updateOrderStatus(order, OrderStatus.READY) },
@@ -98,26 +113,78 @@ class AdminOrdersActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadOrders() {
-        lifecycleScope.launch {
-            try {
-                binding.progressBar.visibility = View.VISIBLE
-                allOrders = orderRepo.getAllOrders()
-                filterOrders()
-            } catch (e: Exception) {
-                toast("Failed to load orders: ${e.message}")
-            } finally {
-                binding.progressBar.visibility = View.GONE
-            }
+    private fun startRealtimeOrdersListener() {
+        ordersListener?.remove()
+
+        binding.progressBar.visibility = View.VISIBLE
+
+        try {
+            val db = FirebaseFirestore.getInstance()
+            ordersListener = db.collection("orders")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    binding.progressBar.visibility = View.GONE
+
+                    if (error != null) {
+                        toast("Failed to load orders")
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        allOrders = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                if (!doc.exists()) return@mapNotNull null
+                                val data = doc.data ?: return@mapNotNull null
+                                parseOrderFromMap(doc.id, data)
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                        filterOrders()
+                    }
+                }
+        } catch (_: Exception) {
+            binding.progressBar.visibility = View.GONE
+            toast("Failed to connect to orders")
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseOrderFromMap(id: String, data: Map<String, Any?>): Order {
+        val itemsList = (data["items"] as? List<Map<String, Any?>>) ?: emptyList()
+        val items = itemsList.map { itemMap ->
+            OrderItem(
+                menuItemId = itemMap["menuItemId"] as? String ?: "",
+                name = itemMap["name"] as? String ?: "",
+                price = (itemMap["price"] as? Number)?.toDouble() ?: 0.0,
+                quantity = (itemMap["quantity"] as? Number)?.toInt() ?: 1,
+                totalPrice = (itemMap["totalPrice"] as? Number)?.toDouble() ?: 0.0
+            )
+        }
+
+        return Order(
+            orderId = id,
+            token = data["token"] as? String ?: "",
+            studentId = data["studentId"] as? String ?: "",
+            studentName = data["studentName"] as? String ?: "",
+            items = items,
+            subtotal = (data["subtotal"] as? Number)?.toDouble() ?: 0.0,
+            handlingCharge = (data["handlingCharge"] as? Number)?.toDouble() ?: 0.0,
+            totalAmount = (data["totalAmount"] as? Number)?.toDouble() ?: 0.0,
+            pickupTime = data["pickupTime"] as? String ?: "ASAP",
+            status = OrderStatus.fromString(data["status"] as? String ?: "RECEIVED"),
+            createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            qrString = data["qrString"] as? String ?: ""
+        )
     }
 
     private fun filterOrders() {
         val filtered = when (currentTab) {
-            0 -> allOrders.filter { it.status == OrderStatus.RECEIVED } // New
-            1 -> allOrders.filter { it.status == OrderStatus.ACCEPTED || it.status == OrderStatus.PREPARING } // Preparing
-            2 -> allOrders.filter { it.status == OrderStatus.READY } // Ready
-            3 -> allOrders.filter { it.status == OrderStatus.COLLECTED || it.status == OrderStatus.REJECTED } // Completed
+            0 -> allOrders.filter { it.status == OrderStatus.RECEIVED }
+            1 -> allOrders.filter { it.status == OrderStatus.ACCEPTED || it.status == OrderStatus.PREPARING }
+            2 -> allOrders.filter { it.status == OrderStatus.READY }
+            3 -> allOrders.filter { it.status == OrderStatus.COLLECTED || it.status == OrderStatus.REJECTED }
             else -> allOrders
         }
 
@@ -136,9 +203,9 @@ class AdminOrdersActivity : AppCompatActivity() {
             try {
                 orderRepo.updateOrderStatus(order.orderId, newStatus)
                 toast("Order ${order.token} updated to ${newStatus.displayName}")
-                loadOrders()
+                // No need to reload - real-time listener will update automatically
             } catch (e: Exception) {
-                toast("Failed to update order: ${e.message}")
+                toast("Failed to update: ${e.message}")
             }
         }
     }

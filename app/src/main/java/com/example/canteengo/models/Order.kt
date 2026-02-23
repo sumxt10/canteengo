@@ -7,7 +7,7 @@ data class Order(
     val studentName: String = "",
     val items: List<OrderItem> = emptyList(),
     val subtotal: Double = 0.0,
-    val packingCharge: Double = 5.0,
+    val handlingCharge: Double = 0.0,
     val totalAmount: Double = 0.0,
     val pickupTime: String = "ASAP",
     val status: OrderStatus = OrderStatus.RECEIVED,
@@ -38,4 +38,3 @@ enum class OrderStatus(val displayName: String, val colorHex: String) {
         }
     }
 }
-

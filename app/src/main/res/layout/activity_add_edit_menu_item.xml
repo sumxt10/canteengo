@@ -196,14 +196,17 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        app:prefixText="₹ ">
+                        app:prefixText="₹ "
+                        android:textColorHint="#6B7280">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etPrice"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:hint="Price"
-                            android:inputType="number" />
+                            android:inputType="number"
+                            android:textColor="#1F2937"
+                            android:textColorHint="#6B7280" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -211,14 +214,17 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:textColorHint="#6B7280">
 
                         <AutoCompleteTextView
                             android:id="@+id/actvCategory"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:hint="Category"
-                            android:inputType="none" />
+                            android:inputType="none"
+                            android:textColor="#1F2937"
+                            android:textColorHint="#6B7280" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <LinearLayout

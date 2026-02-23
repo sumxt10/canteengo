@@ -1,5 +1,7 @@
 package com.example.canteengo.models
 
+import com.google.firebase.firestore.PropertyName
+
 data class MenuItem(
     val id: String = "",
     val name: String = "",
@@ -7,8 +9,15 @@ data class MenuItem(
     val price: Double = 0.0,
     val category: String = "",
     val imageUrl: String = "",
-    val isVeg: Boolean = true,
-    val isAvailable: Boolean = true,
+
+    @get:PropertyName("isVeg")
+    @set:PropertyName("isVeg")
+    var isVeg: Boolean = true,
+
+    @get:PropertyName("isAvailable")
+    @set:PropertyName("isAvailable")
+    var isAvailable: Boolean = true,
+
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -23,7 +32,7 @@ enum class FoodCategory(val displayName: String, val emoji: String) {
 
     companion object {
         fun fromString(value: String): FoodCategory? {
-            return values().find { it.name.equals(value, ignoreCase = true) }
+            return entries.find { it.name.equals(value, ignoreCase = true) }
         }
     }
 }

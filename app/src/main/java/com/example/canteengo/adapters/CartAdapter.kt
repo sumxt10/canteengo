@@ -25,24 +25,18 @@ class CartAdapter(
             binding.tvTotalPrice.text = "₹${item.totalPrice.toInt()}"
 
             binding.btnMinus.setOnClickListener {
-                CartManager.decrementQuantity(item.menuItem.id)
-                val newQuantity = CartManager.getQuantity(item.menuItem.id)
-                if (newQuantity == 0) {
+                val currentQuantity = CartManager.getQuantity(item.menuItem.id)
+                if (currentQuantity <= 1) {
+                    CartManager.removeItem(item.menuItem.id)
                     onRemove()
                 } else {
-                    // Update quantity display immediately
-                    binding.tvQuantity.text = newQuantity.toString()
-                    binding.tvTotalPrice.text = "₹${(item.menuItem.price * newQuantity).toInt()}"
+                    CartManager.decrementQuantity(item.menuItem.id)
                     onQuantityChange()
                 }
             }
 
             binding.btnPlus.setOnClickListener {
                 CartManager.incrementQuantity(item.menuItem.id)
-                val newQuantity = CartManager.getQuantity(item.menuItem.id)
-                // Update quantity display immediately
-                binding.tvQuantity.text = newQuantity.toString()
-                binding.tvTotalPrice.text = "₹${(item.menuItem.price * newQuantity).toInt()}"
                 onQuantityChange()
             }
 
@@ -71,7 +65,9 @@ class CartDiffCallback : DiffUtil.ItemCallback<CartItem>() {
     }
 
     override fun areContentsTheSame(oldItem: CartItem, newItem: CartItem): Boolean {
-        return oldItem == newItem
+        return oldItem.menuItem.id == newItem.menuItem.id &&
+               oldItem.quantity == newItem.quantity &&
+               oldItem.totalPrice == newItem.totalPrice
     }
 }
 

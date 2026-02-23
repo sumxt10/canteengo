@@ -2,6 +2,8 @@ package com.example.canteengo.activities.student
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -41,9 +43,11 @@ class StudentHomeActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupUI()
+        setupSearch()
         setupCategories()
         setupMenuItems()
         setupBottomNav()
+        setupViewAllButtons()
         loadUserData()
         loadMenuItems()
         loadSpendingStats()
@@ -66,8 +70,32 @@ class StudentHomeActivity : AppCompatActivity() {
         }
 
         binding.bannerCard.setOnClickListener {
-            // Could navigate to special item details
             toast("Today's Special: Veg Thali!")
+        }
+    }
+
+    private fun setupSearch() {
+        binding.etSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                currentSearchQuery = s?.toString()?.trim() ?: ""
+                filterMenuItems()
+            }
+        })
+    }
+
+    private fun setupViewAllButtons() {
+        // View all menu items button
+        binding.tvViewAll.setOnClickListener {
+            showAllItems = !showAllItems
+            binding.tvViewAll.text = if (showAllItems) "Show Less" else "View All"
+            filterMenuItems()
+        }
+
+        // View all stats button
+        binding.btnViewStats.setOnClickListener {
+            startActivity(Intent(this, StudentOrdersActivity::class.java))
         }
     }
 
@@ -75,6 +103,10 @@ class StudentHomeActivity : AppCompatActivity() {
         val categories = FoodCategory.values().toList()
         categoryAdapter = CategoryAdapter(categories) { category ->
             selectedCategory = category
+            showAllItems = false
+            binding.tvViewAll.text = "View All"
+            currentSearchQuery = ""
+            binding.etSearch.setText("")
             filterMenuItems()
         }
 
@@ -163,13 +195,14 @@ class StudentHomeActivity : AppCompatActivity() {
     }
 
     private fun filterMenuItems() {
-        var filtered = allMenuItems
+        // Only show available items to students
+        var filtered = allMenuItems.filter { it.isAvailable }
 
         // Apply search filter if query is not empty
         if (currentSearchQuery.isNotEmpty()) {
             filtered = filtered.filter { item ->
                 item.name.contains(currentSearchQuery, ignoreCase = true) ||
-                item.category.contains(currentSearchQuery, ignoreCase = true) ||
+                item.category.replace("_", " ").contains(currentSearchQuery, ignoreCase = true) ||
                 item.description.contains(currentSearchQuery, ignoreCase = true)
             }
         } else if (!showAllItems) {

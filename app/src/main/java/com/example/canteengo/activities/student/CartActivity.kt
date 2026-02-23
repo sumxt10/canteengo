@@ -32,9 +32,13 @@ class CartActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         cartAdapter = CartAdapter(
-            onQuantityChange = { updateUI() },
+            onQuantityChange = {
+                refreshCartList()
+                updateTotals()
+            },
             onRemove = {
-                updateUI()
+                refreshCartList()
+                updateTotals()
                 toast("Item removed")
             }
         )
@@ -55,21 +59,38 @@ class CartActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateUI() {
-        val items = CartManager.items
-        cartAdapter.submitList(items.toList())
+    private fun refreshCartList() {
+        // Create a completely new list to force RecyclerView update
+        val newList = CartManager.items.map { it.copy() }
+        cartAdapter.submitList(newList)
 
-        if (items.isEmpty()) {
+        // Update visibility based on cart state
+        if (newList.isEmpty()) {
             binding.emptyState.visibility = View.VISIBLE
             binding.cartContent.visibility = View.GONE
         } else {
             binding.emptyState.visibility = View.GONE
             binding.cartContent.visibility = View.VISIBLE
+        }
+    }
 
-            binding.tvSubtotal.text = "₹${CartManager.subtotal.toInt()}"
-            binding.tvPackingCharge.text = "₹${CartManager.handlingCharge.toInt()}"
-            binding.tvTotal.text = "₹${CartManager.total.toInt()}"
-            binding.btnPlaceOrder.text = "Place Order • ₹${CartManager.total.toInt()}"
+    private fun updateTotals() {
+        binding.tvSubtotal.text = "₹${CartManager.subtotal.toInt()}"
+        binding.tvPackingCharge.text = "₹${CartManager.handlingCharge.toInt()}"
+        binding.tvTotal.text = "₹${CartManager.total.toInt()}"
+        binding.btnPlaceOrder.text = "Place Order • ₹${CartManager.total.toInt()}"
+    }
+
+    private fun updateUI() {
+        refreshCartList()
+
+        if (CartManager.isEmpty()) {
+            binding.emptyState.visibility = View.VISIBLE
+            binding.cartContent.visibility = View.GONE
+        } else {
+            binding.emptyState.visibility = View.GONE
+            binding.cartContent.visibility = View.VISIBLE
+            updateTotals()
         }
     }
 }

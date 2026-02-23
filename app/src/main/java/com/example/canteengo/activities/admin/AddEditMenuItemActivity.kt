@@ -69,9 +69,26 @@ class AddEditMenuItemActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
+        // Image selection click listeners
+        binding.btnSelectImage.setOnClickListener {
+            launchImagePicker()
+        }
+
+        binding.ivItemImage.setOnClickListener {
+            launchImagePicker()
+        }
+
+        binding.uploadPlaceholder.setOnClickListener {
+            launchImagePicker()
+        }
+
         binding.btnSave.setOnClickListener {
             saveItem()
         }
+    }
+
+    private fun launchImagePicker() {
+        imagePicker.launch("image/*")
     }
 
     private fun loadExistingItem() {
@@ -116,7 +133,9 @@ class AddEditMenuItemActivity : AppCompatActivity() {
         val priceStr = binding.etPrice.text?.toString()?.trim().orEmpty()
         val categoryDisplay = binding.actvCategory.text?.toString()?.trim().orEmpty()
         val isVeg = binding.switchVeg.isChecked
-        val isAvailable = binding.switchAvailable.isChecked
+        // New items are always available by default
+        // Existing items keep their current availability status
+        val isAvailable = existingItem?.isAvailable ?: true
 
         // Validation
         if (name.isBlank()) {

@@ -62,7 +62,7 @@ class OrderRepository {
     }
 
     private suspend fun generateToken(): String {
-        val db = dbOrNull() ?: return "A${(1000..9999).random()}"
+        val db = dbOrNull() ?: return generateFallbackToken()
 
         return try {
             val today = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
@@ -75,11 +75,23 @@ class OrderRepository {
                 val currentCount = snapshot.getLong("count") ?: 0
                 val newCount = currentCount + 1
                 transaction.set(counterDoc, mapOf("count" to newCount, "date" to today))
+
+                // Format: A + day_counter (e.g., A1001, A1002)
+                // This ensures uniqueness per day and readability
                 "A${1000 + newCount}"
             }.await()
         } catch (e: Exception) {
-            "A${(1000..9999).random()}"
+            // Fallback with timestamp-based token if transaction fails
+            generateFallbackToken()
         }
+    }
+
+    private fun generateFallbackToken(): String {
+        // Generate unique token using timestamp + random component
+        // Format: B + last 4 digits of timestamp + 2 random digits
+        val timestamp = System.currentTimeMillis()
+        val random = (10..99).random()
+        return "B${(timestamp % 10000)}$random"
     }
 
     suspend fun getOrderById(orderId: String): Order? {
@@ -233,6 +245,43 @@ class OrderRepository {
         ).await()
     }
 
+    /**
+     * Atomic update with transaction to prevent race conditions when multiple admins
+     * try to accept the same order simultaneously
+     */
+    suspend fun updateOrderStatusAtomic(orderId: String, expectedCurrentStatus: OrderStatus, newStatus: OrderStatus) {
+        val db = dbOrNull() ?: error("Firebase not initialized")
+
+        db.runTransaction { transaction ->
+            val docRef = db.collection(ORDERS).document(orderId)
+            val snapshot = transaction.get(docRef)
+
+            val currentStatus = OrderStatus.fromString(snapshot.getString("status") ?: "")
+
+            // Only update if the current status matches expected (prevents race conditions)
+            if (currentStatus == expectedCurrentStatus) {
+                transaction.update(docRef, mapOf(
+                    "status" to newStatus.name,
+                    "updatedAt" to System.currentTimeMillis()
+                ))
+            } else {
+                throw Exception("Order status has already been changed by another admin")
+            }
+        }.await()
+    }
+
+    /**
+     * Parse a Firestore document snapshot into an Order object
+     */
+    fun parseOrderDocument(doc: com.google.firebase.firestore.DocumentSnapshot): Order? {
+        return try {
+            if (!doc.exists()) return null
+            mapToOrder(doc.id, doc.data ?: emptyMap())
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun observeOrder(orderId: String): Flow<Order?> = callbackFlow {
         val db = dbOrNull()
         if (db == null) {
@@ -273,7 +322,7 @@ class OrderRepository {
                 )
             },
             "subtotal" to order.subtotal,
-            "packingCharge" to order.packingCharge,
+            "handlingCharge" to order.handlingCharge,
             "totalAmount" to order.totalAmount,
             "pickupTime" to order.pickupTime,
             "status" to order.status.name,
@@ -303,7 +352,7 @@ class OrderRepository {
             studentName = data["studentName"] as? String ?: "",
             items = items,
             subtotal = (data["subtotal"] as? Number)?.toDouble() ?: 0.0,
-            packingCharge = (data["packingCharge"] as? Number)?.toDouble() ?: 5.0,
+            handlingCharge = (data["handlingCharge"] as? Number)?.toDouble() ?: 0.0,
             totalAmount = (data["totalAmount"] as? Number)?.toDouble() ?: 0.0,
             pickupTime = data["pickupTime"] as? String ?: "ASAP",
             status = OrderStatus.fromString(data["status"] as? String ?: "RECEIVED"),

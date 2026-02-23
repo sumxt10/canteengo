@@ -101,6 +101,9 @@ class AdminMenuActivity : AppCompatActivity() {
                 binding.progressBar.visibility = View.VISIBLE
                 val items = menuRepo.getAllMenuItems()
 
+                // Clear all toggling states before updating list
+                menuAdapter.clearAllTogglingStates()
+
                 if (items.isEmpty()) {
                     binding.rvMenuItems.visibility = View.GONE
                     binding.emptyState.visibility = View.VISIBLE
@@ -120,20 +123,27 @@ class AdminMenuActivity : AppCompatActivity() {
     private fun toggleItemAvailability(item: MenuItem, isAvailable: Boolean) {
         lifecycleScope.launch {
             try {
+                // First update Firestore
                 menuRepo.toggleAvailability(item.id, isAvailable)
 
-                // Update local list to reflect the change immediately
+                // Create a completely new list with the updated item
                 val currentList = menuAdapter.currentList.toMutableList()
                 val index = currentList.indexOfFirst { it.id == item.id }
                 if (index != -1) {
                     currentList[index] = currentList[index].copy(isAvailable = isAvailable)
-                    menuAdapter.submitList(currentList)
+                    // Clear toggling state before submitting new list
+                    menuAdapter.clearTogglingState(item.id)
+                    // Force complete refresh by submitting null first, then new list
+                    menuAdapter.submitList(null)
+                    menuAdapter.submitList(currentList.toList())
                 }
 
                 toast("${item.name} is now ${if (isAvailable) "available" else "unavailable"}")
             } catch (e: Exception) {
                 toast("Failed to update: ${e.message}")
-                loadMenuItems() // Refresh to reset switch on error
+                // Clear toggling state and reload to reset switch on error
+                menuAdapter.clearTogglingState(item.id)
+                loadMenuItems()
             }
         }
     }

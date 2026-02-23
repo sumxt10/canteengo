@@ -49,6 +49,7 @@
 
         <!-- Admin Activities -->
         <activity android:name=".activities.admin.AdminOrdersActivity" android:exported="false" />
+        <activity android:name=".activities.admin.AdminOrderDetailsActivity" android:exported="false" />
         <activity android:name=".activities.admin.AdminMenuActivity" android:exported="false" />
         <activity android:name=".activities.admin.AdminProfileActivity" android:exported="false" />
         <activity android:name=".activities.admin.AddEditMenuItemActivity" android:exported="false" />

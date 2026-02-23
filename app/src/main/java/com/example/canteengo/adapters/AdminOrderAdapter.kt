@@ -15,6 +15,7 @@ import java.util.Date
 import java.util.Locale
 
 class AdminOrderAdapter(
+    private val onItemClick: (Order) -> Unit,
     private val onAcceptClick: (Order) -> Unit,
     private val onPreparingClick: (Order) -> Unit,
     private val onReadyClick: (Order) -> Unit,
@@ -72,6 +73,7 @@ class AdminOrderAdapter(
             }
 
             // Click listeners
+            binding.root.setOnClickListener { onItemClick(order) }
             binding.btnAccept.setOnClickListener { onAcceptClick(order) }
             binding.btnPreparing.setOnClickListener { onPreparingClick(order) }
             binding.btnReady.setOnClickListener { onReadyClick(order) }
