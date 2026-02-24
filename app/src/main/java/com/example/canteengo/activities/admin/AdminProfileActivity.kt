@@ -11,6 +11,7 @@ import com.example.canteengo.databinding.ActivityAdminProfileBinding
 import com.example.canteengo.models.CartManager
 import com.example.canteengo.repository.AuthRepository
 import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.CacheManager
 import com.example.canteengo.utils.toast
 import kotlinx.coroutines.launch
 
@@ -34,8 +35,9 @@ class AdminProfileActivity : AppCompatActivity() {
 
         binding.btnLogout.setOnClickListener {
             lifecycleScope.launch {
-                // Clear cart before logout to prevent sharing between users
+                // Clear caches before logout
                 CartManager.clear()
+                CacheManager.clearAll()
                 authRepo.signOut()
                 toast("Logged out")
                 startActivity(Intent(this@AdminProfileActivity, OnboardingActivity::class.java)
@@ -76,22 +78,36 @@ class AdminProfileActivity : AppCompatActivity() {
     }
 
     private fun loadProfileData() {
+        // First, show cached data immediately if available
+        CacheManager.getAdminProfileEvenIfStale()?.let { profile ->
+            binding.tvName.text = profile.name
+            binding.tvEmail.text = profile.email
+            binding.tvMobile.text = profile.mobile.ifEmpty { "Not provided" }
+            binding.tvInitials.text = profile.name.firstOrNull()?.uppercaseChar()?.toString() ?: "A"
+            showLoading(false)
+        }
+
+        // Then refresh from Firestore in background
         lifecycleScope.launch {
             try {
                 val profile = userRepo.getCurrentAdminProfile()
                 profile?.let {
+                    // Update cache
+                    CacheManager.cacheAdminProfile(it)
+
+                    // Update UI
                     binding.tvName.text = it.name
                     binding.tvEmail.text = it.email
                     binding.tvMobile.text = it.mobile.ifEmpty { "Not provided" }
                     binding.tvInitials.text = it.name.firstOrNull()?.uppercase() ?: "A"
                 }
 
-                // Show content after data is loaded
                 showLoading(false)
             } catch (e: Exception) {
-                // Show content even on error
                 showLoading(false)
-                toast("Failed to load profile")
+                if (CacheManager.getAdminProfileEvenIfStale() == null) {
+                    toast("Failed to load profile")
+                }
             }
         }
     }

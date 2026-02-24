@@ -104,6 +104,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Full Name"
+                        android:textColor="@color/cg_text_dark"
                         android:inputType="textPersonName" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -122,7 +123,8 @@
                         android:id="@+id/etLibraryCard"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Library Card Number" />
+                        android:hint="Library Card Number"
+                        android:textColor="@color/cg_text_dark" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <LinearLayout
@@ -147,7 +149,8 @@
                             android:id="@+id/etDepartment"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Department" />
+                            android:hint="Department"
+                            android:textColor="@color/cg_text_dark" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -166,7 +169,8 @@
                             android:id="@+id/etDivision"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Division" />
+                            android:hint="Division"
+                            android:textColor="@color/cg_text_dark" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
@@ -188,7 +192,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Mobile Number"
-                        android:textColor="#111827"
+                        android:textColor="@color/cg_text_dark"
                         android:inputType="phone"
                         android:maxLength="10" />
                 </com.google.android.material.textfield.TextInputLayout>

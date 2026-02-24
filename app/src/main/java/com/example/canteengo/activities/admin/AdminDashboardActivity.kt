@@ -17,6 +17,7 @@ import com.example.canteengo.repository.AuthRepository
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.CacheManager
 import com.example.canteengo.utils.toast
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -38,6 +39,9 @@ class AdminDashboardActivity : AppCompatActivity() {
 
     // Real-time listener for orders
     private var ordersListener: ListenerRegistration? = null
+
+    // Cached admin phone for order acceptance
+    private var cachedAdminPhone: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,17 +135,32 @@ class AdminDashboardActivity : AppCompatActivity() {
     }
 
     private fun loadAdminData() {
+        // Show cached data immediately for smooth UI
+        CacheManager.getAdminProfileEvenIfStale()?.let { profile ->
+            binding.tvGreeting.text = "Welcome back, ${profile.name.split(" ").first()}!"
+            binding.tvProfileInitial.text = profile.name.firstOrNull()?.uppercaseChar()?.toString() ?: "A"
+            cachedAdminPhone = profile.mobile
+        }
+
+        // Then refresh from Firestore in background
         lifecycleScope.launch {
             try {
                 val profile = userRepo.getCurrentAdminProfile()
                 profile?.let {
+                    // Update cache
+                    CacheManager.cacheAdminProfile(it)
+
+                    // Update UI
                     binding.tvGreeting.text = "Welcome back, ${it.name.split(" ").first()}!"
-                    // Set profile initial
                     val initial = it.name.firstOrNull()?.uppercaseChar()?.toString() ?: "A"
                     binding.tvProfileInitial.text = initial
+                    cachedAdminPhone = it.mobile
                 }
             } catch (e: Exception) {
-                // Use default greeting
+                // Use cached or default greeting
+                if (CacheManager.getAdminProfileEvenIfStale() == null) {
+                    binding.tvGreeting.text = "Welcome back!"
+                }
             }
         }
     }
@@ -207,7 +226,8 @@ class AdminDashboardActivity : AppCompatActivity() {
             status = OrderStatus.fromString(data["status"] as? String ?: "RECEIVED"),
             createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
-            qrString = data["qrString"] as? String ?: ""
+            qrString = data["qrString"] as? String ?: "",
+            acceptedByAdminPhone = data["acceptedByAdminPhone"] as? String ?: ""
         )
     }
 
@@ -252,11 +272,32 @@ class AdminDashboardActivity : AppCompatActivity() {
     private fun updateOrderStatus(order: Order, newStatus: OrderStatus) {
         lifecycleScope.launch {
             try {
-                orderRepo.updateOrderStatus(order.orderId, newStatus)
-                toast("Order ${order.token} updated to ${newStatus.name}")
+                // If accepting, use atomic transaction to prevent race conditions
+                if (newStatus == OrderStatus.ACCEPTED) {
+                    if (cachedAdminPhone.isEmpty()) {
+                        toast("Unable to accept: Admin phone not available")
+                        return@launch
+                    }
+                    orderRepo.acceptOrderAtomically(order.orderId, cachedAdminPhone)
+                    toast("Order ${order.token} accepted successfully!")
+                } else {
+                    // For other status changes, include admin phone for ownership verification
+                    if (cachedAdminPhone.isNotEmpty()) {
+                        orderRepo.updateOrderStatusWithAdminPhone(order.orderId, newStatus, cachedAdminPhone)
+                    } else {
+                        orderRepo.updateOrderStatus(order.orderId, newStatus)
+                    }
+                    toast("Order ${order.token} updated to ${newStatus.name}")
+                }
                 // Real-time listener will automatically update the UI
             } catch (e: Exception) {
-                toast("Failed to update order: ${e.message}")
+                // Show user-friendly error message
+                val errorMessage = when {
+                    e.message?.contains("already") == true -> "Order already taken by another admin"
+                    e.message?.contains("another admin") == true -> "This order is being handled by another admin"
+                    else -> "Failed to update: ${e.message}"
+                }
+                toast(errorMessage)
             }
         }
     }

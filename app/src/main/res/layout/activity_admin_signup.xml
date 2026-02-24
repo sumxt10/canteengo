@@ -124,6 +124,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Mobile Number"
+                        android:textColor="@color/cg_text_dark"
                         android:inputType="phone"
                         android:maxLength="10" />
                 </com.google.android.material.textfield.TextInputLayout>

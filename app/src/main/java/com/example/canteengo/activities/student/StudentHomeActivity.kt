@@ -91,11 +91,6 @@ class StudentHomeActivity : AppCompatActivity() {
         binding.profileContainer.setOnClickListener {
             startActivity(Intent(this, StudentProfileActivity::class.java))
         }
-
-
-        binding.bannerCard.setOnClickListener {
-            toast("Today's Special: Veg Thali!")
-        }
     }
 
     private fun setupSearch() {

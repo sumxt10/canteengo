@@ -13,7 +13,8 @@ data class Order(
     val status: OrderStatus = OrderStatus.RECEIVED,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val qrString: String = ""
+    val qrString: String = "",
+    val acceptedByAdminPhone: String = ""
 )
 
 data class OrderItem(

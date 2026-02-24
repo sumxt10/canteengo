@@ -13,6 +13,8 @@ import com.example.canteengo.models.Order
 import com.example.canteengo.models.OrderItem
 import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.OrderRepository
+import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.CacheManager
 import com.example.canteengo.utils.toast
 import com.google.android.material.tabs.TabLayout
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,11 +26,13 @@ class AdminOrdersActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAdminOrdersBinding
     private val orderRepo = OrderRepository()
+    private val userRepo = UserRepository()
     private lateinit var orderAdapter: AdminOrderAdapter
 
     private var allOrders: List<Order> = emptyList()
     private var currentTab = 0
     private var ordersListener: ListenerRegistration? = null
+    private var cachedAdminPhone: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +43,7 @@ class AdminOrdersActivity : AppCompatActivity() {
         setupTabs()
         setupRecyclerView()
         setupBottomNav()
+        loadAdminPhone()
         startRealtimeOrdersListener()
     }
 
@@ -115,11 +120,13 @@ class AdminOrdersActivity : AppCompatActivity() {
 
     private fun startRealtimeOrdersListener() {
         ordersListener?.remove()
-
         binding.progressBar.visibility = View.VISIBLE
 
         try {
             val db = FirebaseFirestore.getInstance()
+
+            // Listen to all orders, real-time updates will handle filtering
+            // The key difference: we now check acceptedByAdminPhone for ownership
             ordersListener = db.collection("orders")
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
@@ -175,16 +182,41 @@ class AdminOrdersActivity : AppCompatActivity() {
             status = OrderStatus.fromString(data["status"] as? String ?: "RECEIVED"),
             createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
-            qrString = data["qrString"] as? String ?: ""
+            qrString = data["qrString"] as? String ?: "",
+            acceptedByAdminPhone = data["acceptedByAdminPhone"] as? String ?: ""
         )
     }
 
     private fun filterOrders() {
+        // For "New Orders" tab (tab 0): Show only RECEIVED orders that have NOT been accepted by any admin
+        // This ensures once an admin accepts an order, it immediately disappears from all other admins' "New" tab
+        // For other tabs: Show orders assigned to this admin OR all orders for visibility
+
         val filtered = when (currentTab) {
-            0 -> allOrders.filter { it.status == OrderStatus.RECEIVED }
-            1 -> allOrders.filter { it.status == OrderStatus.ACCEPTED || it.status == OrderStatus.PREPARING }
-            2 -> allOrders.filter { it.status == OrderStatus.READY }
-            3 -> allOrders.filter { it.status == OrderStatus.COLLECTED || it.status == OrderStatus.REJECTED }
+            0 -> {
+                // New Orders: Only truly unassigned orders (RECEIVED status AND no admin assigned)
+                allOrders.filter { order ->
+                    order.status == OrderStatus.RECEIVED && order.acceptedByAdminPhone.isEmpty()
+                }
+            }
+            1 -> {
+                // Preparing: Orders being prepared (this admin's orders or all for visibility)
+                allOrders.filter { order ->
+                    order.status == OrderStatus.ACCEPTED || order.status == OrderStatus.PREPARING
+                }
+            }
+            2 -> {
+                // Ready: Orders ready for pickup
+                allOrders.filter { order ->
+                    order.status == OrderStatus.READY
+                }
+            }
+            3 -> {
+                // Completed: Collected or rejected orders
+                allOrders.filter { order ->
+                    order.status == OrderStatus.COLLECTED || order.status == OrderStatus.REJECTED
+                }
+            }
             else -> allOrders
         }
 
@@ -198,14 +230,55 @@ class AdminOrdersActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadAdminPhone() {
+        // Use cached data first
+        CacheManager.getAdminProfileEvenIfStale()?.let { profile ->
+            cachedAdminPhone = profile.mobile
+        }
+
+        // Then refresh from Firestore
+        lifecycleScope.launch {
+            try {
+                val profile = userRepo.getCurrentAdminProfile()
+                profile?.let {
+                    CacheManager.cacheAdminProfile(it)
+                    cachedAdminPhone = it.mobile
+                }
+            } catch (_: Exception) {
+                // Ignore, use cached value
+            }
+        }
+    }
+
     private fun updateOrderStatus(order: Order, newStatus: OrderStatus) {
         lifecycleScope.launch {
             try {
-                orderRepo.updateOrderStatus(order.orderId, newStatus)
-                toast("Order ${order.token} updated to ${newStatus.displayName}")
+                // If accepting, use atomic transaction to prevent race conditions
+                if (newStatus == OrderStatus.ACCEPTED) {
+                    if (cachedAdminPhone.isEmpty()) {
+                        toast("Unable to accept: Admin phone not available")
+                        return@launch
+                    }
+                    orderRepo.acceptOrderAtomically(order.orderId, cachedAdminPhone)
+                    toast("Order ${order.token} accepted successfully!")
+                } else {
+                    // For other status changes, include admin phone for ownership verification
+                    if (cachedAdminPhone.isNotEmpty()) {
+                        orderRepo.updateOrderStatusWithAdminPhone(order.orderId, newStatus, cachedAdminPhone)
+                    } else {
+                        orderRepo.updateOrderStatus(order.orderId, newStatus)
+                    }
+                    toast("Order ${order.token} updated to ${newStatus.displayName}")
+                }
                 // No need to reload - real-time listener will update automatically
             } catch (e: Exception) {
-                toast("Failed to update: ${e.message}")
+                // Show user-friendly error message
+                val errorMessage = when {
+                    e.message?.contains("already") == true -> "Order already taken by another admin"
+                    e.message?.contains("another admin") == true -> "This order is being handled by another admin"
+                    else -> "Failed to update: ${e.message}"
+                }
+                toast(errorMessage)
             }
         }
     }

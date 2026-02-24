@@ -9,6 +9,8 @@ import com.example.canteengo.databinding.ActivityAdminOrderDetailsBinding
 import com.example.canteengo.models.Order
 import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.OrderRepository
+import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.CacheManager
 import com.example.canteengo.utils.toast
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -20,8 +22,10 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAdminOrderDetailsBinding
     private val orderRepo = OrderRepository()
+    private val userRepo = UserRepository()
     private var orderId: String = ""
     private var currentOrder: Order? = null
+    private var cachedAdminPhone: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +40,28 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
 
         setupToolbar()
         setupActionButtons()
+        loadAdminPhone()
         observeOrder()
+    }
+
+    private fun loadAdminPhone() {
+        // Use cached data first
+        CacheManager.getAdminProfileEvenIfStale()?.let { profile ->
+            cachedAdminPhone = profile.mobile
+        }
+
+        // Then refresh from Firestore in background
+        lifecycleScope.launch {
+            try {
+                val profile = userRepo.getCurrentAdminProfile()
+                profile?.let {
+                    CacheManager.cacheAdminProfile(it)
+                    cachedAdminPhone = it.mobile
+                }
+            } catch (_: Exception) {
+                // Ignore, use cached value
+            }
+        }
     }
 
     private fun setupToolbar() {
@@ -120,10 +145,32 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 binding.progressBar.visibility = View.VISIBLE
-                orderRepo.updateOrderStatus(orderId, newStatus)
-                toast("Order updated to ${newStatus.displayName}")
+
+                // If accepting, use atomic transaction to prevent race conditions
+                if (newStatus == OrderStatus.ACCEPTED) {
+                    if (cachedAdminPhone.isEmpty()) {
+                        toast("Unable to accept: Admin phone not available")
+                        return@launch
+                    }
+                    orderRepo.acceptOrderAtomically(orderId, cachedAdminPhone)
+                    toast("Order accepted successfully!")
+                } else {
+                    // For other status changes, include admin phone for ownership verification
+                    if (cachedAdminPhone.isNotEmpty()) {
+                        orderRepo.updateOrderStatusWithAdminPhone(orderId, newStatus, cachedAdminPhone)
+                    } else {
+                        orderRepo.updateOrderStatus(orderId, newStatus)
+                    }
+                    toast("Order updated to ${newStatus.displayName}")
+                }
             } catch (e: Exception) {
-                toast("Failed to update: ${e.message}")
+                // Show user-friendly error message
+                val errorMessage = when {
+                    e.message?.contains("already") == true -> "Order already taken by another admin"
+                    e.message?.contains("another admin") == true -> "This order is being handled by another admin"
+                    else -> "Failed to update: ${e.message}"
+                }
+                toast(errorMessage)
             } finally {
                 binding.progressBar.visibility = View.GONE
             }

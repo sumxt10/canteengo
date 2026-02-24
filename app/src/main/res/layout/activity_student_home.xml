@@ -34,7 +34,7 @@
                     android:textSize="14sp"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/ivProfile" />
+                    app:layout_constraintEnd_toStartOf="@id/profileContainer" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/tvUserName"
@@ -133,80 +133,13 @@
                 android:orientation="vertical"
                 android:paddingBottom="16dp">
 
-                <!-- Today's Special Banner -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/bannerCard"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="16dp"
-                    android:layout_marginTop="8dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="0dp">
-
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_banner_gradient"
-                        android:padding="20dp">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/tvBannerTitle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:text="🔥 Today's Special"
-                            android:textColor="@color/white"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintEnd_toStartOf="@id/ivBanner" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/tvBannerItem"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="Veg Thali"
-                            android:textColor="@color/white"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
-                            app:layout_constraintTop_toBottomOf="@id/tvBannerTitle"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintEnd_toStartOf="@id/ivBanner" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/tvBannerPrice"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="₹60 only"
-                            android:textColor="@color/white"
-                            android:textSize="16sp"
-                            android:alpha="0.9"
-                            app:layout_constraintTop_toBottomOf="@id/tvBannerItem"
-                            app:layout_constraintStart_toStartOf="parent" />
-
-                        <ImageView
-                            android:id="@+id/ivBanner"
-                            android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:src="@drawable/ic_food_placeholder"
-                            android:contentDescription="Special item"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintEnd_toEndOf="parent" />
-
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
                 <!-- Spending Statistics Section -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardSpendingStats"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="16dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="8dp"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
                     app:cardBackgroundColor="@color/white">

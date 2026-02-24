@@ -3,6 +3,7 @@ package com.example.canteengo.activities.student
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +16,7 @@ import com.example.canteengo.databinding.ActivityStudentOrderDetailsBinding
 import com.example.canteengo.databinding.ItemOrderDetailBinding
 import com.example.canteengo.models.Order
 import com.example.canteengo.models.OrderItem
+import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.utils.toast
 import com.google.zxing.BarcodeFormat
@@ -87,6 +89,21 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
 
         // Pickup time
         binding.tvPickupTime.text = if (order.pickupTime == "ASAP") "Pickup: ASAP (Priority)" else "Pickup: ${order.pickupTime}"
+
+        // Show admin phone if order is accepted and admin phone is available
+        if (order.status != OrderStatus.RECEIVED && order.acceptedByAdminPhone.isNotEmpty()) {
+            binding.acceptedByContainer.visibility = View.VISIBLE
+            binding.tvAdminPhone.text = order.acceptedByAdminPhone
+
+            binding.btnCallCanteen.setOnClickListener {
+                val intent = Intent(Intent.ACTION_DIAL).apply {
+                    data = Uri.parse("tel:${order.acceptedByAdminPhone}")
+                }
+                startActivity(intent)
+            }
+        } else {
+            binding.acceptedByContainer.visibility = View.GONE
+        }
 
         // QR Code
         binding.tvQrString.text = order.qrString

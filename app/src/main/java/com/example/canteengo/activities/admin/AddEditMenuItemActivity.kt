@@ -13,9 +13,15 @@ import com.example.canteengo.models.FoodCategory
 import com.example.canteengo.models.MenuItem
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.utils.toast
-import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.DataOutputStream
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
 
 class AddEditMenuItemActivity : AppCompatActivity() {
@@ -197,59 +203,125 @@ class AddEditMenuItemActivity : AppCompatActivity() {
     }
 
     private suspend fun uploadImageToStorage(uri: Uri): String {
-        android.util.Log.d("ImageUpload", "Starting upload for URI: $uri")
+        android.util.Log.d("ImageUpload", "Starting Cloudinary upload for URI: $uri")
 
-        return try {
-            // Get the default Firebase Storage instance
-            val storage = FirebaseStorage.getInstance()
-            android.util.Log.d("ImageUpload", "Storage bucket: ${storage.reference.bucket}")
+        return withContext(Dispatchers.IO) {
+            try {
+                // Read the image bytes
+                val inputStream = contentResolver.openInputStream(uri)
+                    ?: throw Exception("Cannot read selected image")
+                val imageBytes = inputStream.readBytes()
+                inputStream.close()
 
-            // Create unique filename with timestamp and UUID to ensure uniqueness
-            val fileName = "menu_images/${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
-            val storageRef = storage.reference.child(fileName)
-            android.util.Log.d("ImageUpload", "Storage path: ${storageRef.path}")
+                android.util.Log.d("ImageUpload", "Image size: ${imageBytes.size} bytes")
 
-            binding.uploadProgress.visibility = View.VISIBLE
+                // Show progress on main thread
+                withContext(Dispatchers.Main) {
+                    binding.uploadProgress.visibility = View.VISIBLE
+                }
 
-            // Read the content to verify URI is valid
-            val inputStream = contentResolver.openInputStream(uri)
-            if (inputStream == null) {
-                android.util.Log.e("ImageUpload", "Failed to open input stream for URI")
-                throw Exception("Cannot read selected image")
+                // Cloudinary unsigned upload URL
+                val cloudName = "dx7hxbqbi"
+                val uploadPreset = "canteengo_menu"
+                val uploadUrl = "https://api.cloudinary.com/v1_1/$cloudName/image/upload"
+
+                // Create multipart boundary - use simple alphanumeric boundary
+                val boundary = "Boundary${System.currentTimeMillis()}"
+                val lineEnd = "\r\n"
+                val twoHyphens = "--"
+
+                val url = URL(uploadUrl)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.doOutput = true
+                connection.useCaches = false
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Connection", "Keep-Alive")
+                connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                connection.connectTimeout = 60000
+                connection.readTimeout = 60000
+
+                val outputStream = DataOutputStream(connection.outputStream)
+
+                // Add upload_preset field
+                outputStream.writeBytes("$twoHyphens$boundary$lineEnd")
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"upload_preset\"$lineEnd")
+                outputStream.writeBytes(lineEnd)
+                outputStream.writeBytes("$uploadPreset$lineEnd")
+
+                // Add file field with proper headers
+                val fileName = "menu_${System.currentTimeMillis()}.jpg"
+                outputStream.writeBytes("$twoHyphens$boundary$lineEnd")
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"$lineEnd")
+                outputStream.writeBytes("Content-Type: image/jpeg$lineEnd")
+                outputStream.writeBytes("Content-Transfer-Encoding: binary$lineEnd")
+                outputStream.writeBytes(lineEnd)
+
+                // Write image bytes
+                outputStream.write(imageBytes)
+                outputStream.writeBytes(lineEnd)
+
+                // End of multipart
+                outputStream.writeBytes("$twoHyphens$boundary$twoHyphens$lineEnd")
+                outputStream.flush()
+                outputStream.close()
+
+                // Get response
+                val responseCode = connection.responseCode
+                android.util.Log.d("ImageUpload", "Response code: $responseCode")
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                    val response = StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+
+                    android.util.Log.d("ImageUpload", "Success response: $response")
+
+                    val jsonResponse = JSONObject(response.toString())
+                    val secureUrl = jsonResponse.getString("secure_url")
+                    android.util.Log.d("ImageUpload", "Upload successful. URL: $secureUrl")
+
+                    // Hide progress on main thread
+                    withContext(Dispatchers.Main) {
+                        binding.uploadProgress.visibility = View.GONE
+                    }
+
+                    secureUrl
+                } else {
+                    // Read error response
+                    val errorStream = connection.errorStream
+                    val errorResponse = if (errorStream != null) {
+                        val errorReader = BufferedReader(InputStreamReader(errorStream))
+                        val sb = StringBuilder()
+                        var errorLine: String?
+                        while (errorReader.readLine().also { errorLine = it } != null) {
+                            sb.append(errorLine)
+                        }
+                        errorReader.close()
+                        sb.toString()
+                    } else {
+                        "No error details available"
+                    }
+
+                    android.util.Log.e("ImageUpload", "Upload failed. Code: $responseCode, Response: $errorResponse")
+
+                    withContext(Dispatchers.Main) {
+                        binding.uploadProgress.visibility = View.GONE
+                    }
+
+                    throw Exception("Upload failed (code $responseCode): $errorResponse")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ImageUpload", "Upload exception: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    binding.uploadProgress.visibility = View.GONE
+                }
+                throw Exception("Image upload failed: ${e.message}")
             }
-            val bytes = inputStream.readBytes()
-            inputStream.close()
-            android.util.Log.d("ImageUpload", "Image size: ${bytes.size} bytes")
-
-            // Upload using byte array (more reliable than URI for some devices)
-            val uploadTask = storageRef.putBytes(bytes)
-
-            // Add progress listener for debugging
-            uploadTask.addOnProgressListener { snapshot ->
-                val progress = (100.0 * snapshot.bytesTransferred / snapshot.totalByteCount).toInt()
-                android.util.Log.d("ImageUpload", "Upload progress: $progress%")
-            }
-
-            // Wait for upload to complete
-            val taskSnapshot = uploadTask.await()
-            android.util.Log.d("ImageUpload", "Upload completed. Bytes uploaded: ${taskSnapshot.bytesTransferred}")
-
-            // Verify upload was successful before getting download URL
-            if (taskSnapshot.bytesTransferred <= 0) {
-                throw Exception("Upload failed - no bytes transferred")
-            }
-
-            // Get download URL from the same reference
-            val downloadUrl = storageRef.downloadUrl.await()
-            android.util.Log.d("ImageUpload", "Download URL obtained: $downloadUrl")
-
-            binding.uploadProgress.visibility = View.GONE
-
-            downloadUrl.toString()
-        } catch (e: Exception) {
-            android.util.Log.e("ImageUpload", "Upload failed: ${e.message}", e)
-            binding.uploadProgress.visibility = View.GONE
-            throw Exception("Image upload failed: ${e.message}")
         }
     }
 
