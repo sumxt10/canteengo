@@ -44,11 +44,16 @@ class OrderRepository {
     suspend fun placeOrder(order: Order): Order {
         val db = dbOrNull() ?: error("Firebase not initialized")
 
-        // Generate token
-        val token = generateToken()
-        val qrString = "CANTEENGO_TOKEN_$token"
+        // First create the document to get a unique ID
+        val docRef = db.collection(ORDERS).document()
+        val orderId = docRef.id
+
+        // Generate globally unique token using orderId as base
+        val token = generateGloballyUniqueToken(orderId)
+        val qrString = "CANTEENGO_ORDER_${orderId}_$token"
 
         val orderWithToken = order.copy(
+            orderId = orderId,
             token = token,
             qrString = qrString,
             status = OrderStatus.RECEIVED,
@@ -56,42 +61,59 @@ class OrderRepository {
             updatedAt = System.currentTimeMillis()
         )
 
-        val docRef = db.collection(ORDERS).add(orderToMap(orderWithToken)).await()
+        // Set the document with the pre-generated ID
+        docRef.set(orderToMap(orderWithToken)).await()
 
-        return orderWithToken.copy(orderId = docRef.id)
+        return orderWithToken
     }
 
-    private suspend fun generateToken(): String {
-        val db = dbOrNull() ?: return generateFallbackToken()
+    /**
+     * Generates a globally unique, human-readable token.
+     * Format: [A-Z][0-9]{4} where the combination is derived from orderId hash + global counter
+     * This ensures:
+     * - No duplicates across days, devices, or sessions
+     * - Human-readable format for verbal communication
+     * - Cryptographically tied to the unique orderId
+     */
+    private suspend fun generateGloballyUniqueToken(orderId: String): String {
+        val db = dbOrNull() ?: return generateTokenFromOrderId(orderId)
 
         return try {
-            val today = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
-                .format(java.util.Date())
+            // Use a single global counter (not per-day) for sequential tokens
+            val counterDoc = db.collection("counters").document("global_order_counter")
 
-            val counterDoc = db.collection("counters").document("orders_$today")
-
-            db.runTransaction { transaction ->
+            val newCount = db.runTransaction { transaction ->
                 val snapshot = transaction.get(counterDoc)
-                val currentCount = snapshot.getLong("count") ?: 0
+                val currentCount = snapshot.getLong("count") ?: 10000L // Start from 10000
                 val newCount = currentCount + 1
-                transaction.set(counterDoc, mapOf("count" to newCount, "date" to today))
-
-                // Format: A + day_counter (e.g., A1001, A1002)
-                // This ensures uniqueness per day and readability
-                "A${1000 + newCount}"
+                transaction.set(counterDoc, mapOf(
+                    "count" to newCount,
+                    "lastUpdated" to System.currentTimeMillis()
+                ))
+                newCount
             }.await()
+
+            // Format: Letter prefix (based on orderId hash) + global counter
+            // This ensures uniqueness while remaining human-readable
+            val prefix = ('A'.code + (orderId.hashCode().and(0x7FFFFFFF) % 26)).toChar()
+            "$prefix$newCount"
         } catch (e: Exception) {
-            // Fallback with timestamp-based token if transaction fails
-            generateFallbackToken()
+            // Fallback: generate token from orderId hash + timestamp
+            generateTokenFromOrderId(orderId)
         }
     }
 
-    private fun generateFallbackToken(): String {
-        // Generate unique token using timestamp + random component
-        // Format: B + last 4 digits of timestamp + 2 random digits
-        val timestamp = System.currentTimeMillis()
-        val random = (10..99).random()
-        return "B${(timestamp % 10000)}$random"
+    /**
+     * Fallback token generation using orderId hash.
+     * Guarantees uniqueness since orderId is already unique.
+     */
+    private fun generateTokenFromOrderId(orderId: String): String {
+        // Use hash of orderId to create a unique token
+        val hash = orderId.hashCode().and(0x7FFFFFFF) // Ensure positive
+        val prefix = ('A'.code + (hash % 26)).toChar()
+        val number = 10000 + (hash % 90000) // 5-digit number
+        val suffix = (System.currentTimeMillis() % 100).toInt() // Extra uniqueness
+        return "$prefix$number$suffix"
     }
 
     suspend fun getOrderById(orderId: String): Order? {

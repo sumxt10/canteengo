@@ -103,70 +103,8 @@
                             android:text="RECEIVED"
                             android:textColor="@color/white"
                             android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="12dp"
-                        android:background="#E5E7EB" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Student"
-                                android:textColor="#6B7280"
-                                android:textSize="12sp" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/tvStudentName"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="John Doe"
-                                android:textColor="@color/black"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Pickup Time"
-                                android:textColor="#6B7280"
-                                android:textSize="12sp" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/tvPickupTime"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="ASAP"
-                                android:textColor="@color/cg_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-
-                        </LinearLayout>
+                            android:textStyle="bold"
+                            android:background="@drawable/bg_status_badge" />
 
                     </LinearLayout>
 
@@ -175,9 +113,64 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="23 Feb 2026, 10:30 AM"
+                        android:text="21 Feb 2026, 12:30 PM"
                         android:textColor="#6B7280"
-                        android:textSize="12sp" />
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tvPickupTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Pickup: ASAP"
+                        android:textColor="@color/cg_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- QR Code Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="20dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Show this QR at counter"
+                        android:textColor="#6B7280"
+                        android:textSize="14sp" />
+
+                    <ImageView
+                        android:id="@+id/ivQrCode"
+                        android:layout_width="180dp"
+                        android:layout_height="180dp"
+                        android:layout_marginTop="12dp"
+                        android:background="#F3F4F6"
+                        android:contentDescription="QR Code"
+                        android:scaleType="fitCenter" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tvQrString"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="CANTEENGO_TOKEN_A1001"
+                        android:textColor="#6B7280"
+                        android:textSize="11sp" />
 
                 </LinearLayout>
 
@@ -187,7 +180,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="@color/white">
@@ -206,15 +199,12 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/tvItems"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvItems"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="2x Samosa - ₹30\n1x Cold Coffee - ₹40"
-                        android:textColor="#374151"
-                        android:textSize="14sp"
-                        android:lineSpacingExtra="6dp" />
+                        android:nestedScrollingEnabled="false" />
 
                 </LinearLayout>
 
@@ -224,7 +214,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="@color/white">
@@ -254,16 +244,14 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Subtotal"
-                            android:textColor="#6B7280"
-                            android:textSize="14sp" />
+                            android:textColor="#6B7280" />
 
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/tvSubtotal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="₹70"
-                            android:textColor="@color/black"
-                            android:textSize="14sp" />
+                            android:text="₹0"
+                            android:textColor="@color/black" />
 
                     </LinearLayout>
 
@@ -278,16 +266,14 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Handling Charge (10%)"
-                            android:textColor="#6B7280"
-                            android:textSize="14sp" />
+                            android:textColor="#6B7280" />
 
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/tvHandlingCharge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="₹4"
-                            android:textColor="@color/black"
-                            android:textSize="14sp" />
+                            android:text="₹0"
+                            android:textColor="@color/black" />
 
                     </LinearLayout>
 
@@ -306,16 +292,15 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Total"
+                            android:text="Total Amount"
                             android:textColor="@color/black"
-                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/tvTotal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="₹74"
+                            android:text="₹0"
                             android:textColor="@color/cg_primary"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -326,66 +311,15 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Action Buttons -->
-            <LinearLayout
+            <!-- Track Order Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTrackOrder"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:orientation="vertical">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAccept"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Accept Order"
-                    android:textColor="@color/white"
-                    app:backgroundTint="#10B981"
-                    app:cornerRadius="12dp"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPreparing"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mark Preparing"
-                    android:textColor="@color/white"
-                    app:backgroundTint="@color/cg_secondary"
-                    app:cornerRadius="12dp"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnReady"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mark Ready"
-                    android:textColor="@color/white"
-                    app:backgroundTint="#3B82F6"
-                    app:cornerRadius="12dp"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnComplete"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mark Collected"
-                    android:textColor="@color/white"
-                    app:backgroundTint="@color/cg_primary"
-                    app:cornerRadius="12dp"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnReject"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Reject Order"
-                    android:textColor="#EF4444"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    app:strokeColor="#EF4444"
-                    app:cornerRadius="12dp"
-                    android:visibility="gone" />
-
-            </LinearLayout>
+                android:layout_marginTop="16dp"
+                android:text="Track Order"
+                android:paddingVertical="12dp"
+                app:cornerRadius="16dp" />
 
         </LinearLayout>
 

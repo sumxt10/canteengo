@@ -35,7 +35,7 @@ class StudentOrdersActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         orderAdapter = OrderAdapter { order ->
-            val intent = Intent(this, OrderTrackingActivity::class.java)
+            val intent = Intent(this, StudentOrderDetailsActivity::class.java)
             intent.putExtra("orderId", order.orderId)
             startActivity(intent)
         }

@@ -29,7 +29,7 @@
                     android:id="@+id/tvGreeting"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Welcome back! 👋"
+                    android:text="Welcome back!"
                     android:textColor="#6B7280"
                     android:textSize="14sp"
                     app:layout_constraintTop_toTopOf="parent"

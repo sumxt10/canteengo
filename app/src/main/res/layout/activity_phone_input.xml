@@ -20,7 +20,7 @@
             android:id="@+id/tvTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Almost Done! 🎉"
+            android:text="Almost Done!"
             android:textColor="@color/white"
             android:textSize="28sp"
             android:textStyle="bold"

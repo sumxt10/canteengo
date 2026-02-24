@@ -46,6 +46,8 @@
         <activity android:name=".activities.student.StudentOrdersActivity" android:exported="false" />
         <activity android:name=".activities.student.StudentProfileActivity" android:exported="false" />
         <activity android:name=".activities.student.FoodDetailsActivity" android:exported="false" />
+        <activity android:name=".activities.student.StudentOrderDetailsActivity" android:exported="false" />
+        <activity android:name=".activities.student.EditStudentProfileActivity" android:exported="false" />
 
         <!-- Admin Activities -->
         <activity android:name=".activities.admin.AdminOrdersActivity" android:exported="false" />

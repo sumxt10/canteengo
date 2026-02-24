@@ -126,15 +126,14 @@ class AdminMenuActivity : AppCompatActivity() {
                 // First update Firestore
                 menuRepo.toggleAvailability(item.id, isAvailable)
 
-                // Create a completely new list with the updated item
+                // Update local list without triggering full refresh
                 val currentList = menuAdapter.currentList.toMutableList()
                 val index = currentList.indexOfFirst { it.id == item.id }
                 if (index != -1) {
                     currentList[index] = currentList[index].copy(isAvailable = isAvailable)
-                    // Clear toggling state before submitting new list
+                    // Clear toggling state
                     menuAdapter.clearTogglingState(item.id)
-                    // Force complete refresh by submitting null first, then new list
-                    menuAdapter.submitList(null)
+                    // Use DiffUtil by submitting new list - this will animate smoothly
                     menuAdapter.submitList(currentList.toList())
                 }
 

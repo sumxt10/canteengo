@@ -27,6 +27,7 @@ class StudentProfileActivity : AppCompatActivity() {
 
         setupToolbar()
         setupBottomNav()
+        setupEditProfile()
         setupLogout()
 
         // Show loading state initially
@@ -34,8 +35,20 @@ class StudentProfileActivity : AppCompatActivity() {
         loadProfile()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Reload profile when returning from edit screen
+        loadProfile()
+    }
+
     private fun setupToolbar() {
         binding.btnBack.setOnClickListener { finish() }
+    }
+
+    private fun setupEditProfile() {
+        binding.btnEditProfile.setOnClickListener {
+            startActivity(Intent(this, EditStudentProfileActivity::class.java))
+        }
     }
 
     private fun setupBottomNav() {

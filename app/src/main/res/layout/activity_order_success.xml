@@ -32,7 +32,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Order Placed! 🎉"
+                android:text="Order Placed!"
                 android:textColor="@color/black"
                 android:textSize="26sp"
                 android:textStyle="bold" />

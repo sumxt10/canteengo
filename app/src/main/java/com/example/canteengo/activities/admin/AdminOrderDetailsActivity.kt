@@ -68,7 +68,7 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
     private fun displayOrderDetails(order: Order) {
         binding.tvToken.text = "#${order.token}"
         binding.tvStudentName.text = order.studentName
-        binding.tvPickupTime.text = if (order.pickupTime == "ASAP") "🔥 ASAP (Priority)" else order.pickupTime
+        binding.tvPickupTime.text = if (order.pickupTime == "ASAP") "ASAP (Priority)" else order.pickupTime
 
         // Format date
         val dateFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())

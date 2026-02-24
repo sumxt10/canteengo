@@ -11,12 +11,16 @@ import com.example.canteengo.activities.OnboardingActivity
 import com.example.canteengo.adapters.AdminOrderAdapter
 import com.example.canteengo.databinding.ActivityAdminDashboardBinding
 import com.example.canteengo.models.Order
+import com.example.canteengo.models.OrderItem
 import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.AuthRepository
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
 import com.example.canteengo.utils.toast
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -32,6 +36,9 @@ class AdminDashboardActivity : AppCompatActivity() {
     private lateinit var orderAdapter: AdminOrderAdapter
     private var allOrders: List<Order> = emptyList()
 
+    // Real-time listener for orders
+    private var ordersListener: ListenerRegistration? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAdminDashboardBinding.inflate(layoutInflater)
@@ -41,7 +48,7 @@ class AdminDashboardActivity : AppCompatActivity() {
         setupBottomNav()
         setupOrdersRecyclerView()
         loadAdminData()
-        loadOrders()
+        startRealtimeOrdersListener()
         seedMenuIfNeeded()
     }
 
@@ -53,7 +60,13 @@ class AdminDashboardActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        loadOrders()
+        // Listener already handles updates, no need to manually reload
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up listener
+        ordersListener?.remove()
     }
 
     private fun setupUI() {
@@ -122,7 +135,7 @@ class AdminDashboardActivity : AppCompatActivity() {
             try {
                 val profile = userRepo.getCurrentAdminProfile()
                 profile?.let {
-                    binding.tvGreeting.text = "Welcome back, ${it.name.split(" ").first()}! 👋"
+                    binding.tvGreeting.text = "Welcome back, ${it.name.split(" ").first()}!"
                     // Set profile initial
                     val initial = it.name.firstOrNull()?.uppercaseChar()?.toString() ?: "A"
                     binding.tvProfileInitial.text = initial
@@ -133,50 +146,106 @@ class AdminDashboardActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadOrders() {
-        lifecycleScope.launch {
-            try {
-                allOrders = orderRepo.getAllOrders()
+    /**
+     * Start real-time listener for orders.
+     * Orders will automatically update across all admin devices when changes occur.
+     */
+    private fun startRealtimeOrdersListener() {
+        ordersListener?.remove()
 
-                // Get today's date
-                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        try {
+            val db = FirebaseFirestore.getInstance()
+            ordersListener = db.collection("orders")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        toast("Failed to load orders")
+                        return@addSnapshotListener
+                    }
 
-                // Filter today's orders
-                val todayOrders = allOrders.filter { order ->
-                    val orderDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        .format(Date(order.createdAt))
-                    orderDate == today
+                    if (snapshot != null) {
+                        allOrders = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                if (!doc.exists()) return@mapNotNull null
+                                val data = doc.data ?: return@mapNotNull null
+                                parseOrderFromMap(doc.id, data)
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                        updateDashboardUI()
+                    }
                 }
+        } catch (_: Exception) {
+            toast("Failed to connect to orders")
+        }
+    }
 
-                // Calculate stats
-                val pendingOrders = allOrders.filter {
-                    it.status == OrderStatus.RECEIVED || it.status == OrderStatus.ACCEPTED
-                }
-                val completedTodayOrders = todayOrders.filter {
-                    it.status == OrderStatus.COLLECTED
-                }
-                val todayEarnings = completedTodayOrders.sumOf { it.totalAmount }
+    @Suppress("UNCHECKED_CAST")
+    private fun parseOrderFromMap(id: String, data: Map<String, Any?>): Order {
+        val itemsList = (data["items"] as? List<Map<String, Any?>>) ?: emptyList()
+        val items = itemsList.map { itemMap ->
+            OrderItem(
+                menuItemId = itemMap["menuItemId"] as? String ?: "",
+                name = itemMap["name"] as? String ?: "",
+                price = (itemMap["price"] as? Number)?.toDouble() ?: 0.0,
+                quantity = (itemMap["quantity"] as? Number)?.toInt() ?: 1,
+                totalPrice = (itemMap["totalPrice"] as? Number)?.toDouble() ?: 0.0
+            )
+        }
 
-                // Update UI
-                binding.tvTodayOrders.text = todayOrders.size.toString()
-                binding.tvTodayEarnings.text = "₹${todayEarnings.toInt()}"
-                binding.tvPendingOrders.text = pendingOrders.size.toString()
+        return Order(
+            orderId = id,
+            token = data["token"] as? String ?: "",
+            studentId = data["studentId"] as? String ?: "",
+            studentName = data["studentName"] as? String ?: "",
+            items = items,
+            subtotal = (data["subtotal"] as? Number)?.toDouble() ?: 0.0,
+            handlingCharge = (data["handlingCharge"] as? Number)?.toDouble() ?: 0.0,
+            totalAmount = (data["totalAmount"] as? Number)?.toDouble() ?: 0.0,
+            pickupTime = data["pickupTime"] as? String ?: "ASAP",
+            status = OrderStatus.fromString(data["status"] as? String ?: "RECEIVED"),
+            createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            qrString = data["qrString"] as? String ?: ""
+        )
+    }
 
-                // Show recent orders (last 5)
-                val recentOrders = allOrders.sortedByDescending { it.createdAt }.take(5)
+    private fun updateDashboardUI() {
+        // Get today's date
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-                if (recentOrders.isEmpty()) {
-                    binding.rvRecentOrders.visibility = View.GONE
-                    binding.emptyOrdersState.visibility = View.VISIBLE
-                } else {
-                    binding.rvRecentOrders.visibility = View.VISIBLE
-                    binding.emptyOrdersState.visibility = View.GONE
-                    orderAdapter.submitList(recentOrders)
-                }
+        // Filter today's orders
+        val todayOrders = allOrders.filter { order ->
+            val orderDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                .format(Date(order.createdAt))
+            orderDate == today
+        }
 
-            } catch (e: Exception) {
-                toast("Failed to load orders: ${e.message}")
-            }
+        // Calculate stats
+        val pendingOrders = allOrders.filter {
+            it.status == OrderStatus.RECEIVED || it.status == OrderStatus.ACCEPTED
+        }
+        val completedTodayOrders = todayOrders.filter {
+            it.status == OrderStatus.COLLECTED
+        }
+        val todayEarnings = completedTodayOrders.sumOf { it.totalAmount }
+
+        // Update UI
+        binding.tvTodayOrders.text = todayOrders.size.toString()
+        binding.tvTodayEarnings.text = "₹${todayEarnings.toInt()}"
+        binding.tvPendingOrders.text = pendingOrders.size.toString()
+
+        // Show recent orders (last 5)
+        val recentOrders = allOrders.sortedByDescending { it.createdAt }.take(5)
+
+        if (recentOrders.isEmpty()) {
+            binding.rvRecentOrders.visibility = View.GONE
+            binding.emptyOrdersState.visibility = View.VISIBLE
+        } else {
+            binding.rvRecentOrders.visibility = View.VISIBLE
+            binding.emptyOrdersState.visibility = View.GONE
+            orderAdapter.submitList(recentOrders)
         }
     }
 
@@ -185,7 +254,7 @@ class AdminDashboardActivity : AppCompatActivity() {
             try {
                 orderRepo.updateOrderStatus(order.orderId, newStatus)
                 toast("Order ${order.token} updated to ${newStatus.name}")
-                loadOrders()
+                // Real-time listener will automatically update the UI
             } catch (e: Exception) {
                 toast("Failed to update order: ${e.message}")
             }

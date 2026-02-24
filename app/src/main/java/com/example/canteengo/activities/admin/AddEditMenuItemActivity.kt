@@ -13,7 +13,6 @@ import com.example.canteengo.models.FoodCategory
 import com.example.canteengo.models.MenuItem
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.utils.toast
-import com.google.firebase.FirebaseApp
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -108,7 +107,6 @@ class AddEditMenuItemActivity : AppCompatActivity() {
                         false
                     )
                     binding.switchVeg.isChecked = item.isVeg
-                    binding.switchAvailable.isChecked = item.isAvailable
 
                     // Load existing image
                     if (item.imageUrl.isNotEmpty()) {
@@ -199,21 +197,57 @@ class AddEditMenuItemActivity : AppCompatActivity() {
     }
 
     private suspend fun uploadImageToStorage(uri: Uri): String {
+        android.util.Log.d("ImageUpload", "Starting upload for URI: $uri")
+
         return try {
-            FirebaseApp.getInstance()
+            // Get the default Firebase Storage instance
             val storage = FirebaseStorage.getInstance()
-            val fileName = "menu_images/${UUID.randomUUID()}.jpg"
-            val ref = storage.reference.child(fileName)
+            android.util.Log.d("ImageUpload", "Storage bucket: ${storage.reference.bucket}")
+
+            // Create unique filename with timestamp and UUID to ensure uniqueness
+            val fileName = "menu_images/${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
+            val storageRef = storage.reference.child(fileName)
+            android.util.Log.d("ImageUpload", "Storage path: ${storageRef.path}")
 
             binding.uploadProgress.visibility = View.VISIBLE
 
-            ref.putFile(uri).await()
-            val downloadUrl = ref.downloadUrl.await()
+            // Read the content to verify URI is valid
+            val inputStream = contentResolver.openInputStream(uri)
+            if (inputStream == null) {
+                android.util.Log.e("ImageUpload", "Failed to open input stream for URI")
+                throw Exception("Cannot read selected image")
+            }
+            val bytes = inputStream.readBytes()
+            inputStream.close()
+            android.util.Log.d("ImageUpload", "Image size: ${bytes.size} bytes")
+
+            // Upload using byte array (more reliable than URI for some devices)
+            val uploadTask = storageRef.putBytes(bytes)
+
+            // Add progress listener for debugging
+            uploadTask.addOnProgressListener { snapshot ->
+                val progress = (100.0 * snapshot.bytesTransferred / snapshot.totalByteCount).toInt()
+                android.util.Log.d("ImageUpload", "Upload progress: $progress%")
+            }
+
+            // Wait for upload to complete
+            val taskSnapshot = uploadTask.await()
+            android.util.Log.d("ImageUpload", "Upload completed. Bytes uploaded: ${taskSnapshot.bytesTransferred}")
+
+            // Verify upload was successful before getting download URL
+            if (taskSnapshot.bytesTransferred <= 0) {
+                throw Exception("Upload failed - no bytes transferred")
+            }
+
+            // Get download URL from the same reference
+            val downloadUrl = storageRef.downloadUrl.await()
+            android.util.Log.d("ImageUpload", "Download URL obtained: $downloadUrl")
 
             binding.uploadProgress.visibility = View.GONE
 
             downloadUrl.toString()
         } catch (e: Exception) {
+            android.util.Log.e("ImageUpload", "Upload failed: ${e.message}", e)
             binding.uploadProgress.visibility = View.GONE
             throw Exception("Image upload failed: ${e.message}")
         }

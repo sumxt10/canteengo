@@ -69,6 +69,8 @@ class AuthRepository {
 
     fun signOut() {
         authOrNull()?.signOut()
+        // Clear cached data on logout
+        com.example.canteengo.utils.CacheManager.clearAll()
     }
 }
 

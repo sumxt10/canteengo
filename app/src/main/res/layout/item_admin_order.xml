@@ -64,7 +64,7 @@
                 android:id="@+id/tvPickupTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔥 ASAP"
+                android:text="ASAP"
                 android:textColor="@color/cg_primary"
                 android:textSize="12sp"
                 android:textStyle="bold" />

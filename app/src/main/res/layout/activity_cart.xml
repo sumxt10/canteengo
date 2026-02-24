@@ -171,7 +171,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Handling Charge (5%)"
+                    android:text="Handling Charge (10%)"
                     android:textColor="#6B7280" />
 
                 <com.google.android.material.textview.MaterialTextView

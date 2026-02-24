@@ -32,7 +32,7 @@ class AdminOrderAdapter(
             binding.tvStudentName.text = order.studentName
             binding.tvItemCount.text = "${order.items.size} items"
             binding.tvTotal.text = "₹${order.totalAmount.toInt()}"
-            binding.tvPickupTime.text = if (order.pickupTime == "ASAP") "🔥 ASAP" else order.pickupTime
+            binding.tvPickupTime.text = if (order.pickupTime == "ASAP") "ASAP" else order.pickupTime
 
             // Format date
             val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())

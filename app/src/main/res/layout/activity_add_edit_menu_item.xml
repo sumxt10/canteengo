@@ -166,21 +166,25 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilName"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:textColorHint="#6B7280">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etName"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:hint="Item Name"
-                            android:inputType="textCapWords" />
+                            android:inputType="textCapWords"
+                            android:textColor="#1F2937"
+                            android:textColorHint="#6B7280" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp">
+                        android:layout_marginTop="12dp"
+                        android:textColorHint="#6B7280">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDescription"
@@ -188,7 +192,9 @@
                             android:layout_height="wrap_content"
                             android:hint="Description"
                             android:inputType="textMultiLine"
-                            android:minLines="2" />
+                            android:minLines="2"
+                            android:textColor="#1F2937"
+                            android:textColorHint="#6B7280" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -250,28 +256,6 @@
 
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Available"
-                            android:textColor="@color/black"
-                            android:textSize="16sp" />
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switchAvailable"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true" />
-
-                    </LinearLayout>
 
                 </LinearLayout>
 

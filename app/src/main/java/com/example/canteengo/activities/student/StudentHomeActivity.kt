@@ -19,6 +19,7 @@ import com.example.canteengo.models.MenuItem
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.CacheManager
 import com.example.canteengo.utils.toast
 import kotlinx.coroutines.launch
 
@@ -48,9 +49,35 @@ class StudentHomeActivity : AppCompatActivity() {
         setupMenuItems()
         setupBottomNav()
         setupViewAllButtons()
+
+        // Load cached data immediately for smooth UI, then refresh from network
+        loadCachedDataFirst()
         loadUserData()
         loadMenuItems()
         loadSpendingStats()
+    }
+
+    private fun loadCachedDataFirst() {
+        // Display cached profile immediately if available
+        CacheManager.getStudentProfileEvenIfStale()?.let { profile ->
+            binding.tvGreeting.text = "Hey ${profile.name.split(" ").first()}!"
+            val initial = profile.name.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
+            binding.tvProfileInitial.text = initial
+        }
+
+        // Display cached menu items immediately if available
+        CacheManager.getMenuItemsEvenIfStale()?.let { items ->
+            allMenuItems = items.filter { it.isAvailable }
+            filterMenuItems()
+        }
+
+        // Display cached spending stats immediately if available
+        CacheManager.getSpendingStatsEvenIfStale()?.let { stats ->
+            binding.tvTodaySpending.text = "₹${stats.todaySpending.toInt()}"
+            binding.tvWeekSpending.text = "₹${stats.weekSpending.toInt()}"
+            binding.tvMonthSpending.text = "₹${stats.monthSpending.toInt()}"
+            binding.tvTopCategory.text = if (stats.topCategory != "None") stats.topCategory else "No orders yet"
+        }
     }
 
     override fun onResume() {
@@ -65,9 +92,6 @@ class StudentHomeActivity : AppCompatActivity() {
             startActivity(Intent(this, StudentProfileActivity::class.java))
         }
 
-        binding.fabCart.setOnClickListener {
-            startActivity(Intent(this, CartActivity::class.java))
-        }
 
         binding.bannerCard.setOnClickListener {
             toast("Today's Special: Veg Thali!")
@@ -91,11 +115,6 @@ class StudentHomeActivity : AppCompatActivity() {
             showAllItems = !showAllItems
             binding.tvViewAll.text = if (showAllItems) "Show Less" else "View All"
             filterMenuItems()
-        }
-
-        // View all stats button
-        binding.btnViewStats.setOnClickListener {
-            startActivity(Intent(this, StudentOrdersActivity::class.java))
         }
     }
 
@@ -172,7 +191,10 @@ class StudentHomeActivity : AppCompatActivity() {
             try {
                 val profile = userRepository.getCurrentStudentProfile()
                 profile?.let {
-                    binding.tvGreeting.text = "Hey ${it.name.split(" ").first()}! 👋"
+                    // Cache the profile for smoother navigation
+                    CacheManager.cacheStudentProfile(it)
+
+                    binding.tvGreeting.text = "Hey ${it.name.split(" ").first()}!"
                     // Set profile initial
                     val initial = it.name.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
                     binding.tvProfileInitial.text = initial
@@ -186,7 +208,11 @@ class StudentHomeActivity : AppCompatActivity() {
     private fun loadMenuItems() {
         lifecycleScope.launch {
             try {
-                allMenuItems = menuRepository.getAllMenuItems()
+                val items = menuRepository.getAllMenuItems()
+                // Cache menu items for smoother navigation
+                CacheManager.cacheMenuItems(items)
+
+                allMenuItems = items.filter { it.isAvailable }
                 filterMenuItems()
             } catch (e: Exception) {
                 toast("Failed to load menu: ${e.message}")
@@ -217,12 +243,6 @@ class StudentHomeActivity : AppCompatActivity() {
 
     private fun updateCartBadge() {
         val count = CartManager.itemCount
-        if (count > 0) {
-            binding.fabCart.visibility = View.VISIBLE
-            binding.fabCart.text = "Cart ($count)"
-        } else {
-            binding.fabCart.visibility = View.GONE
-        }
 
         // Update bottom nav badge
         val badge = binding.bottomNav.getOrCreateBadge(R.id.nav_cart)
@@ -239,10 +259,13 @@ class StudentHomeActivity : AppCompatActivity() {
             try {
                 val stats = orderRepository.getSpendingStats()
 
+                // Cache spending stats for smoother navigation
+                CacheManager.cacheSpendingStats(stats)
+
                 binding.tvTodaySpending.text = "₹${stats.todaySpending.toInt()}"
                 binding.tvWeekSpending.text = "₹${stats.weekSpending.toInt()}"
                 binding.tvMonthSpending.text = "₹${stats.monthSpending.toInt()}"
-                binding.tvTopCategory.text = stats.topCategory
+                binding.tvTopCategory.text = if (stats.topCategory != "None") stats.topCategory else "No orders yet"
                 binding.tvTopCategoryCount.text = "${stats.topCategoryCount} orders"
 
             } catch (e: Exception) {

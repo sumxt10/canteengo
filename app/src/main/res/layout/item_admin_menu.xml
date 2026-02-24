@@ -113,7 +113,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:padding="6dp"
-                    android:src="@drawable/ic_profile"
+                    android:src="@drawable/ic_edit"
                     app:tint="@color/cg_primary"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Edit" />

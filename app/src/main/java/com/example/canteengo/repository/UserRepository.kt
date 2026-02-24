@@ -212,6 +212,28 @@ class UserRepository {
     }
 
     /**
+     * Update student profile - only editable fields (library card, department, division)
+     */
+    suspend fun updateStudentProfile(
+        libraryCardNumber: String,
+        department: String,
+        division: String
+    ) {
+        val auth = authOrNull() ?: error("Firebase is not initialized")
+        val db = dbOrNull() ?: error("Firebase is not initialized")
+        val user = auth.currentUser ?: error("No authenticated user")
+
+        val data = hashMapOf<String, Any>(
+            FIELD_LIBRARY_CARD_NUMBER to libraryCardNumber,
+            FIELD_DEPARTMENT to department,
+            FIELD_DIVISION to division,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp()
+        )
+
+        db.collection(USERS).document(user.uid).update(data).await()
+    }
+
+    /**
      * Optimized method to get user role and mobile status in a single Firestore read.
      * Returns a data class with both values to avoid multiple network calls.
      */
