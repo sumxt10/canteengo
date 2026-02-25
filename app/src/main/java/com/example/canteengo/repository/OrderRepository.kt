@@ -268,13 +268,13 @@ class OrderRepository {
     }
 
     /**
-     * Update order status and save admin's phone number when accepting an order.
+     * Update order status and save admin's details when accepting an order.
      * Uses a transaction to prevent race conditions when multiple admins
      * try to accept the same order simultaneously.
      *
-     * @throws Exception if order was already accepted by another admin
+     * @throws Exception if order was already accepted by another admin (includes admin name in error)
      */
-    suspend fun acceptOrderAtomically(orderId: String, adminPhone: String): Boolean {
+    suspend fun acceptOrderAtomically(orderId: String, adminPhone: String, adminName: String): Boolean {
         val db = dbOrNull() ?: error("Firebase not initialized")
 
         return try {
@@ -288,23 +288,27 @@ class OrderRepository {
 
                 val currentStatus = OrderStatus.fromString(snapshot.getString("status") ?: "")
                 val currentAdminPhone = snapshot.getString("acceptedByAdminPhone") ?: ""
+                val currentAdminName = snapshot.getString("acceptedByAdminName") ?: ""
 
                 // Only allow acceptance if:
                 // 1. Status is RECEIVED (not yet accepted)
                 // 2. No admin has accepted it yet (acceptedByAdminPhone is empty)
                 if (currentStatus != OrderStatus.RECEIVED) {
-                    throw Exception("Order already being processed by another admin")
+                    val acceptedBy = if (currentAdminName.isNotEmpty()) currentAdminName else "another admin"
+                    throw Exception("This order has been accepted by $acceptedBy")
                 }
 
                 if (currentAdminPhone.isNotEmpty()) {
-                    throw Exception("Order already accepted by another admin")
+                    val acceptedBy = if (currentAdminName.isNotEmpty()) currentAdminName else "another admin"
+                    throw Exception("This order has been accepted by $acceptedBy")
                 }
 
                 // Atomically update the order
                 transaction.update(docRef, mapOf(
                     "status" to OrderStatus.ACCEPTED.name,
                     "updatedAt" to System.currentTimeMillis(),
-                    "acceptedByAdminPhone" to adminPhone
+                    "acceptedByAdminPhone" to adminPhone,
+                    "acceptedByAdminName" to adminName
                 ))
             }.await()
             true
@@ -316,14 +320,14 @@ class OrderRepository {
     /**
      * Update order status (for non-acceptance status changes).
      * Only allows status changes by the admin who accepted the order.
+     * Note: For ACCEPTED status, use acceptOrderAtomically directly with admin name.
      */
     suspend fun updateOrderStatusWithAdminPhone(orderId: String, status: OrderStatus, adminPhone: String) {
         val db = dbOrNull() ?: error("Firebase not initialized")
 
-        // For acceptance, use atomic transaction
+        // For acceptance, this method should not be used - use acceptOrderAtomically with admin name
         if (status == OrderStatus.ACCEPTED) {
-            acceptOrderAtomically(orderId, adminPhone)
-            return
+            throw Exception("Use acceptOrderAtomically for accepting orders")
         }
 
         // For other status changes, verify admin owns the order
@@ -336,10 +340,11 @@ class OrderRepository {
             }
 
             val orderAdminPhone = snapshot.getString("acceptedByAdminPhone") ?: ""
+            val orderAdminName = snapshot.getString("acceptedByAdminName") ?: "another admin"
 
             // Allow update only if this admin accepted the order, or if no admin is assigned yet
             if (orderAdminPhone.isNotEmpty() && orderAdminPhone != adminPhone) {
-                throw Exception("This order is being handled by another admin")
+                throw Exception("This order is being handled by $orderAdminName")
             }
 
             transaction.update(docRef, mapOf(
@@ -464,7 +469,8 @@ class OrderRepository {
             createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             qrString = data["qrString"] as? String ?: "",
-            acceptedByAdminPhone = data["acceptedByAdminPhone"] as? String ?: ""
+            acceptedByAdminPhone = data["acceptedByAdminPhone"] as? String ?: "",
+            acceptedByAdminName = data["acceptedByAdminName"] as? String ?: ""
         )
     }
 

@@ -167,9 +167,11 @@ orders/
 │   ├── totalAmount: number
 │   ├── pickupTime: string
 │   ├── status: string
-│   ├── acceptedByPhone: string
+│   ├── acceptedByAdminPhone: string
+│   ├── acceptedByAdminName: string
 │   ├── qrString: string
-│   └── createdAt: timestamp
+│   ├── createdAt: timestamp
+│   └── updatedAt: timestamp
 ```
 
 ---
@@ -198,8 +200,8 @@ orders/
 ## 📋 Order Status Flow
 
 ```
-PENDING → ACCEPTED → PREPARING → READY → COLLECTED
-                  ↘ REJECTED
+RECEIVED → ACCEPTED → PREPARING → READY → COLLECTED
+                   ↘ REJECTED
 ```
 
 ---

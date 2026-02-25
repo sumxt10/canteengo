@@ -26,6 +26,7 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
     private var orderId: String = ""
     private var currentOrder: Order? = null
     private var cachedAdminPhone: String = ""
+    private var cachedAdminName: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +49,7 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
         // Use cached data first
         CacheManager.getAdminProfileEvenIfStale()?.let { profile ->
             cachedAdminPhone = profile.mobile
+            cachedAdminName = profile.name
         }
 
         // Then refresh from Firestore in background
@@ -57,6 +59,7 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
                 profile?.let {
                     CacheManager.cacheAdminProfile(it)
                     cachedAdminPhone = it.mobile
+                    cachedAdminName = it.name
                 }
             } catch (_: Exception) {
                 // Ignore, use cached value
@@ -152,7 +155,7 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
                         toast("Unable to accept: Admin phone not available")
                         return@launch
                     }
-                    orderRepo.acceptOrderAtomically(orderId, cachedAdminPhone)
+                    orderRepo.acceptOrderAtomically(orderId, cachedAdminPhone, cachedAdminName)
                     toast("Order accepted successfully!")
                 } else {
                     // For other status changes, include admin phone for ownership verification
@@ -164,12 +167,8 @@ class AdminOrderDetailsActivity : AppCompatActivity() {
                     toast("Order updated to ${newStatus.displayName}")
                 }
             } catch (e: Exception) {
-                // Show user-friendly error message
-                val errorMessage = when {
-                    e.message?.contains("already") == true -> "Order already taken by another admin"
-                    e.message?.contains("another admin") == true -> "This order is being handled by another admin"
-                    else -> "Failed to update: ${e.message}"
-                }
+                // Show user-friendly error message with admin name if available
+                val errorMessage = e.message ?: "Failed to update order"
                 toast(errorMessage)
             } finally {
                 binding.progressBar.visibility = View.GONE

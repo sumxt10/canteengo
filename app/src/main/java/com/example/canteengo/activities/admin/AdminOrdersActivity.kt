@@ -33,6 +33,7 @@ class AdminOrdersActivity : AppCompatActivity() {
     private var currentTab = 0
     private var ordersListener: ListenerRegistration? = null
     private var cachedAdminPhone: String = ""
+    private var cachedAdminName: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -183,7 +184,8 @@ class AdminOrdersActivity : AppCompatActivity() {
             createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             qrString = data["qrString"] as? String ?: "",
-            acceptedByAdminPhone = data["acceptedByAdminPhone"] as? String ?: ""
+            acceptedByAdminPhone = data["acceptedByAdminPhone"] as? String ?: "",
+            acceptedByAdminName = data["acceptedByAdminName"] as? String ?: ""
         )
     }
 
@@ -234,6 +236,7 @@ class AdminOrdersActivity : AppCompatActivity() {
         // Use cached data first
         CacheManager.getAdminProfileEvenIfStale()?.let { profile ->
             cachedAdminPhone = profile.mobile
+            cachedAdminName = profile.name
         }
 
         // Then refresh from Firestore
@@ -243,6 +246,7 @@ class AdminOrdersActivity : AppCompatActivity() {
                 profile?.let {
                     CacheManager.cacheAdminProfile(it)
                     cachedAdminPhone = it.mobile
+                    cachedAdminName = it.name
                 }
             } catch (_: Exception) {
                 // Ignore, use cached value
@@ -259,7 +263,7 @@ class AdminOrdersActivity : AppCompatActivity() {
                         toast("Unable to accept: Admin phone not available")
                         return@launch
                     }
-                    orderRepo.acceptOrderAtomically(order.orderId, cachedAdminPhone)
+                    orderRepo.acceptOrderAtomically(order.orderId, cachedAdminPhone, cachedAdminName)
                     toast("Order ${order.token} accepted successfully!")
                 } else {
                     // For other status changes, include admin phone for ownership verification
@@ -272,12 +276,8 @@ class AdminOrdersActivity : AppCompatActivity() {
                 }
                 // No need to reload - real-time listener will update automatically
             } catch (e: Exception) {
-                // Show user-friendly error message
-                val errorMessage = when {
-                    e.message?.contains("already") == true -> "Order already taken by another admin"
-                    e.message?.contains("another admin") == true -> "This order is being handled by another admin"
-                    else -> "Failed to update: ${e.message}"
-                }
+                // Show user-friendly error message with admin name if available
+                val errorMessage = e.message ?: "Failed to update order"
                 toast(errorMessage)
             }
         }

@@ -8,17 +8,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.canteengo.R
 import com.example.canteengo.activities.RoleSelectionActivity
-import com.example.canteengo.activities.admin.AdminSignupActivity
 import com.example.canteengo.databinding.ActivityLoginBinding
-import com.example.canteengo.models.AdminProfile
 import com.example.canteengo.models.UserRole
 import com.example.canteengo.repository.AuthRepository
 import com.example.canteengo.repository.UserRepository
 import com.example.canteengo.utils.GoogleSignInHelper
+import com.example.canteengo.utils.NetworkUtils
 import com.example.canteengo.utils.RolePrefs
 import com.example.canteengo.utils.SimpleTextWatcher
 import com.example.canteengo.utils.hideKeyboard
 import com.example.canteengo.utils.toast
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -80,13 +80,45 @@ class AdminLoginActivity : AppCompatActivity() {
         val pass = binding.etPassword.text?.toString()?.trim().orEmpty()
         if (!validate(email, pass)) return
 
+        // Check network connectivity first
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            toast(NetworkUtils.NO_INTERNET_MESSAGE)
+            return
+        }
+
         setLoading(true)
         lifecycleScope.launch {
             try {
                 authRepo.signIn(email, pass)
-                ensureRoleAndRoute()
+
+                // Validate role after successful authentication
+                val userRole = userRepo.getCurrentUserRole()
+
+                if (userRole == null) {
+                    // No role found - sign out and show error
+                    FirebaseAuth.getInstance().signOut()
+                    toast("Account not found. Please sign up first.")
+                    setLoading(false)
+                    return@launch
+                }
+
+                if (userRole != UserRole.ADMIN) {
+                    // Wrong role - sign out and show error
+                    FirebaseAuth.getInstance().signOut()
+                    toast("This account is not registered as an admin. Please use the student login.")
+                    setLoading(false)
+                    return@launch
+                }
+
+                // Role validation passed - proceed to dashboard
+                navigateToDashboard()
             } catch (e: Exception) {
-                toast(mapAuthError(e))
+                val errorMessage = if (NetworkUtils.isNetworkError(e)) {
+                    NetworkUtils.NO_INTERNET_MESSAGE
+                } else {
+                    mapAuthError(e)
+                }
+                toast(errorMessage)
             } finally {
                 setLoading(false)
             }
@@ -94,6 +126,12 @@ class AdminLoginActivity : AppCompatActivity() {
     }
 
     private fun doGoogleSignIn() {
+        // Check network connectivity first
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            toast(NetworkUtils.NO_INTERNET_MESSAGE)
+            return
+        }
+
         setLoading(true)
         lifecycleScope.launch {
             try {
@@ -104,6 +142,15 @@ class AdminLoginActivity : AppCompatActivity() {
                             // Optimized: Single Firestore read to get both role and mobile status
                             val profileStatus = userRepo.getUserProfileStatus()
 
+                            // Validate role for existing users
+                            if (profileStatus.role != null && profileStatus.role != UserRole.ADMIN) {
+                                // Wrong role - sign out and show error
+                                FirebaseAuth.getInstance().signOut()
+                                toast("This account is not registered as an admin. Please use the student login.")
+                                setLoading(false)
+                                return@fold
+                            }
+
                             if (profileStatus.role != null && profileStatus.hasCompletedProfile) {
                                 // Existing user with complete profile - go directly to dashboard
                                 navigateToDashboard()
@@ -112,17 +159,32 @@ class AdminLoginActivity : AppCompatActivity() {
                                 navigateToCompleteProfile(isNewUser = profileStatus.role == null)
                             }
                         } catch (e: Exception) {
-                            toast("Error setting up profile: ${e.message}")
+                            val errorMessage = if (NetworkUtils.isNetworkError(e)) {
+                                NetworkUtils.NO_INTERNET_MESSAGE
+                            } else {
+                                "Error setting up profile: ${e.message}"
+                            }
+                            toast(errorMessage)
                             setLoading(false)
                         }
                     },
                     onFailure = { e ->
-                        toast(e.message ?: getString(R.string.something_went_wrong))
+                        val errorMessage = if (NetworkUtils.isNetworkError(e)) {
+                            NetworkUtils.NO_INTERNET_MESSAGE
+                        } else {
+                            e.message ?: getString(R.string.something_went_wrong)
+                        }
+                        toast(errorMessage)
                         setLoading(false)
                     }
                 )
             } catch (e: Exception) {
-                toast("Google Sign-In error: ${e.message}")
+                val errorMessage = if (NetworkUtils.isNetworkError(e)) {
+                    NetworkUtils.NO_INTERNET_MESSAGE
+                } else {
+                    "Google Sign-In error: ${e.message}"
+                }
+                toast(errorMessage)
                 setLoading(false)
             }
         }
@@ -178,9 +240,6 @@ class AdminLoginActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun ensureRoleAndRoute() {
-        navigateToDashboard()
-    }
 
     private fun setLoading(loading: Boolean) {
         binding.progress.visibility = if (loading) View.VISIBLE else View.GONE

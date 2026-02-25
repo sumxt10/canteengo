@@ -14,7 +14,8 @@ data class Order(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val qrString: String = "",
-    val acceptedByAdminPhone: String = ""
+    val acceptedByAdminPhone: String = "",
+    val acceptedByAdminName: String = ""
 )
 
 data class OrderItem(

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".CanteenGoApp"
@@ -15,46 +16,47 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CanteenGo">
 
-        <activity android:name=".activities.admin.AdminDashboardActivity" android:exported="false" />
-        <activity android:name=".activities.student.StudentHomeActivity" android:exported="false" />
-        <activity android:name=".activities.admin.AdminLoginActivity" android:exported="false" />
-        <activity android:name=".activities.student.StudentLoginActivity" android:exported="false" />
-        <activity android:name=".activities.RoleSelectionActivity" android:exported="false" />
-        <activity android:name=".activities.OnboardingActivity" android:exported="false" />
-        <activity android:name=".activities.GetStartedActivity" android:exported="false" />
-        <activity android:name=".activities.PhoneInputActivity" android:exported="false" />
-        <activity android:name=".activities.GoogleSignupDetailsActivity" android:exported="false" />
+        <activity android:name=".activities.admin.AdminDashboardActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.StudentHomeActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.admin.AdminLoginActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.StudentLoginActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.RoleSelectionActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.OnboardingActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.GetStartedActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.PhoneInputActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.GoogleSignupDetailsActivity" android:exported="false" android:screenOrientation="portrait" />
 
         <activity
             android:name=".activities.SplashActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".MainActivity" android:exported="false" />
-        <activity android:name=".activities.student.StudentSignupActivity" android:exported="false" />
-        <activity android:name=".activities.admin.AdminSignupActivity" android:exported="false" />
+        <activity android:name=".MainActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.StudentSignupActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.admin.AdminSignupActivity" android:exported="false" android:screenOrientation="portrait" />
 
         <!-- Student Activities -->
-        <activity android:name=".activities.student.CartActivity" android:exported="false" />
-        <activity android:name=".activities.student.PickupTimeActivity" android:exported="false" />
-        <activity android:name=".activities.student.OrderSuccessActivity" android:exported="false" />
-        <activity android:name=".activities.student.OrderTrackingActivity" android:exported="false" />
-        <activity android:name=".activities.student.StudentOrdersActivity" android:exported="false" />
-        <activity android:name=".activities.student.StudentProfileActivity" android:exported="false" />
-        <activity android:name=".activities.student.FoodDetailsActivity" android:exported="false" />
-        <activity android:name=".activities.student.StudentOrderDetailsActivity" android:exported="false" />
-        <activity android:name=".activities.student.EditStudentProfileActivity" android:exported="false" />
+        <activity android:name=".activities.student.CartActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.PickupTimeActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.OrderSuccessActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.OrderTrackingActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.StudentOrdersActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.StudentProfileActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.FoodDetailsActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.StudentOrderDetailsActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.student.EditStudentProfileActivity" android:exported="false" android:screenOrientation="portrait" />
 
         <!-- Admin Activities -->
-        <activity android:name=".activities.admin.AdminOrdersActivity" android:exported="false" />
-        <activity android:name=".activities.admin.AdminOrderDetailsActivity" android:exported="false" />
-        <activity android:name=".activities.admin.AdminMenuActivity" android:exported="false" />
-        <activity android:name=".activities.admin.AdminProfileActivity" android:exported="false" />
-        <activity android:name=".activities.admin.AddEditMenuItemActivity" android:exported="false" />
+        <activity android:name=".activities.admin.AdminOrdersActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.admin.AdminOrderDetailsActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.admin.AdminMenuActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.admin.AdminProfileActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".activities.admin.AddEditMenuItemActivity" android:exported="false" android:screenOrientation="portrait" />
 
     </application>
 
