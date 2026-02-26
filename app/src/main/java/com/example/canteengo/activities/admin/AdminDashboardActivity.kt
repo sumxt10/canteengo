@@ -171,13 +171,19 @@ class AdminDashboardActivity : AppCompatActivity() {
     /**
      * Start real-time listener for orders.
      * Orders will automatically update across all admin devices when changes occur.
+     * Admin dashboard only shows orders from the last 7 days for data lifecycle management.
      */
     private fun startRealtimeOrdersListener() {
         ordersListener?.remove()
 
         try {
             val db = FirebaseFirestore.getInstance()
+
+            // Calculate timestamp for 7 days ago
+            val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+
             ordersListener = db.collection("orders")
+                .whereGreaterThanOrEqualTo("createdAt", sevenDaysAgo)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {

@@ -1,37 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingVertical="8dp"
-    android:gravity="center_vertical">
+    android:orientation="vertical"
+    android:paddingVertical="8dp">
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvItemName"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Item Name"
-        android:textColor="@color/black"
-        android:textSize="14sp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvQuantity"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:text="x1"
-        android:textColor="#6B7280"
-        android:textSize="14sp" />
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tvItemName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Item Name"
+            android:textColor="@color/black"
+            android:textSize="14sp" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvPrice"
-        android:layout_width="wrap_content"
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tvQuantity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:text="x1"
+            android:textColor="#6B7280"
+            android:textSize="14sp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tvPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="₹50"
+            android:textColor="@color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- Rating Section (shown for completed orders) -->
+    <LinearLayout
+        android:id="@+id/ratingSection"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="₹50"
-        android:textColor="@color/black"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tvYourRating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your rating:"
+            android:textColor="#6B7280"
+            android:textSize="12sp" />
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="6dp"
+            android:src="@drawable/ic_star"
+            android:contentDescription="Star" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/tvExistingRating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="8/10"
+            android:textColor="@color/cg_secondary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRate"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Rate"
+            android:textColor="@color/cg_primary"
+            android:textSize="12sp"
+            app:rippleColor="@color/cg_primary" />
+
+    </LinearLayout>
 
 </LinearLayout>
 

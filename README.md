@@ -211,7 +211,7 @@ RECEIVED → ACCEPTED → PREPARING → READY → COLLECTED
 - [ ] Push notifications for order status updates
 - [ ] Payment gateway integration (UPI, Cards)
 - [ ] Favorite items and reorder functionality
-- [ ] Rating and review system
+- [x] Rating and review system ✅
 - [ ] Multiple canteen support
 - [ ] Admin analytics dashboard
 - [ ] Offline mode with local caching

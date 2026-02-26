@@ -9,6 +9,7 @@ import com.example.canteengo.databinding.ActivityFoodDetailsBinding
 import com.example.canteengo.models.CartManager
 import com.example.canteengo.models.MenuItem
 import com.example.canteengo.utils.toast
+import java.text.DecimalFormat
 
 class FoodDetailsActivity : AppCompatActivity() {
 
@@ -22,6 +23,7 @@ class FoodDetailsActivity : AppCompatActivity() {
 
         loadMenuItem()
         setupUI()
+        setupRatingDisplay()
         updateCartState()
     }
 
@@ -39,7 +41,9 @@ class FoodDetailsActivity : AppCompatActivity() {
             category = intent.getStringExtra("menu_item_category") ?: "",
             imageUrl = intent.getStringExtra("menu_item_image_url") ?: "",
             isVeg = intent.getBooleanExtra("menu_item_is_veg", true),
-            isAvailable = intent.getBooleanExtra("menu_item_is_available", true)
+            isAvailable = intent.getBooleanExtra("menu_item_is_available", true),
+            totalRatingSum = intent.getDoubleExtra("menu_item_rating_sum", 0.0),
+            totalRatingCount = intent.getIntExtra("menu_item_rating_count", 0)
         )
     }
 
@@ -108,6 +112,33 @@ class FoodDetailsActivity : AppCompatActivity() {
             binding.btnAddToCart.visibility = View.VISIBLE
             binding.quantityContainer.visibility = View.GONE
             binding.tvItemTotal.visibility = View.GONE
+        }
+    }
+
+    /**
+     * Display rating information for this menu item.
+     * Shows average rating and count if ratings exist, otherwise shows "no ratings" message.
+     */
+    private fun setupRatingDisplay() {
+        if (menuItem.totalRatingCount > 0) {
+            binding.ratingDisplaySection.visibility = View.VISIBLE
+            binding.noRatingSection.visibility = View.GONE
+
+            // Format average rating to 1 decimal place
+            val avgRating = menuItem.averageRating
+            val df = DecimalFormat("#.#")
+            binding.tvAverageRating.text = df.format(avgRating)
+
+            // Display rating count
+            val countText = if (menuItem.totalRatingCount == 1) {
+                "(1 rating)"
+            } else {
+                "(${menuItem.totalRatingCount} ratings)"
+            }
+            binding.tvRatingCount.text = countText
+        } else {
+            binding.ratingDisplaySection.visibility = View.GONE
+            binding.noRatingSection.visibility = View.VISIBLE
         }
     }
 }

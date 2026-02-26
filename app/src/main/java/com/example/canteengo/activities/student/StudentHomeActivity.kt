@@ -148,6 +148,8 @@ class StudentHomeActivity : AppCompatActivity() {
                 intent.putExtra("menu_item_image_url", menuItem.imageUrl)
                 intent.putExtra("menu_item_is_veg", menuItem.isVeg)
                 intent.putExtra("menu_item_is_available", menuItem.isAvailable)
+                intent.putExtra("menu_item_rating_sum", menuItem.totalRatingSum)
+                intent.putExtra("menu_item_rating_count", menuItem.totalRatingCount)
                 startActivity(intent)
             }
         )

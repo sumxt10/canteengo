@@ -225,6 +225,16 @@ class AdminOrdersActivity : AppCompatActivity() {
         if (filtered.isEmpty()) {
             binding.rvOrders.visibility = View.GONE
             binding.emptyState.visibility = View.VISIBLE
+
+            // Update empty state message based on current tab
+            val emptyMessage = when (currentTab) {
+                0 -> "No new orders this week"
+                1 -> "No orders being prepared"
+                2 -> "No orders ready for pickup"
+                3 -> "No completed orders this week"
+                else -> "No orders in this category"
+            }
+            binding.tvEmptyMessage.text = emptyMessage
         } else {
             binding.rvOrders.visibility = View.VISIBLE
             binding.emptyState.visibility = View.GONE

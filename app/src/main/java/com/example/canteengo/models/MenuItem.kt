@@ -18,8 +18,16 @@ data class MenuItem(
     @set:PropertyName("isAvailable")
     var isAvailable: Boolean = true,
 
-    val createdAt: Long = System.currentTimeMillis()
-)
+    val createdAt: Long = System.currentTimeMillis(),
+
+    // Rating aggregates - stored in Firestore for efficient average calculation
+    val totalRatingSum: Double = 0.0,
+    val totalRatingCount: Int = 0
+) {
+    // Computed average rating (not stored in Firestore)
+    val averageRating: Double
+        get() = if (totalRatingCount > 0) totalRatingSum / totalRatingCount else 0.0
+}
 
 enum class FoodCategory(val displayName: String, val emoji: String) {
     SNACKS("Snacks", "🍿"),

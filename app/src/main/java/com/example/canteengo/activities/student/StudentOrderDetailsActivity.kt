@@ -13,12 +13,15 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.canteengo.databinding.ActivityStudentOrderDetailsBinding
+import com.example.canteengo.databinding.DialogRatingBinding
 import com.example.canteengo.databinding.ItemOrderDetailBinding
 import com.example.canteengo.models.Order
 import com.example.canteengo.models.OrderItem
 import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.OrderRepository
+import com.example.canteengo.repository.RatingRepository
 import com.example.canteengo.utils.toast
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.flow.collectLatest
@@ -31,7 +34,10 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityStudentOrderDetailsBinding
     private val orderRepo = OrderRepository()
+    private val ratingRepo = RatingRepository()
     private var orderId: String = ""
+    private var currentOrder: Order? = null
+    private var existingRatings: Map<String, Int> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +82,8 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
     }
 
     private fun displayOrderDetails(order: Order) {
+        currentOrder = order
+
         // Token
         binding.tvToken.text = "#${order.token}"
 
@@ -109,8 +117,13 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
         binding.tvQrString.text = order.qrString
         generateQrCode(order.qrString)
 
-        // Items
-        binding.rvItems.adapter = OrderItemsAdapter(order.items)
+        // Load existing ratings if order is completed
+        if (order.status == OrderStatus.COLLECTED) {
+            loadExistingRatings(order)
+        } else {
+            // Items without rating support
+            binding.rvItems.adapter = OrderItemsAdapter(order.items, showRating = false)
+        }
 
         // Bill summary
         binding.tvSubtotal.text = "₹${order.subtotal.toInt()}"
@@ -122,6 +135,64 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
             val intent = Intent(this, OrderTrackingActivity::class.java)
             intent.putExtra("orderId", order.orderId)
             startActivity(intent)
+        }
+    }
+
+    private fun loadExistingRatings(order: Order) {
+        lifecycleScope.launch {
+            try {
+                existingRatings = ratingRepo.getRatingsForOrder(order.orderId)
+                binding.rvItems.adapter = OrderItemsAdapter(order.items, showRating = true)
+            } catch (e: Exception) {
+                binding.rvItems.adapter = OrderItemsAdapter(order.items, showRating = true)
+            }
+        }
+    }
+
+    private fun showRatingDialog(item: OrderItem) {
+        val dialog = BottomSheetDialog(this)
+        val dialogBinding = DialogRatingBinding.inflate(layoutInflater)
+        dialog.setContentView(dialogBinding.root)
+
+        dialogBinding.tvItemName.text = item.name
+
+        // Set existing rating if available
+        val existingRating = existingRatings[item.menuItemId]
+        if (existingRating != null) {
+            dialogBinding.sliderRating.value = existingRating.toFloat()
+            dialogBinding.tvSelectedRating.text = existingRating.toString()
+            dialogBinding.btnSubmitRating.text = "Update Rating"
+        }
+
+        // Update displayed rating when slider changes
+        dialogBinding.sliderRating.addOnChangeListener { _, value, _ ->
+            dialogBinding.tvSelectedRating.text = value.toInt().toString()
+        }
+
+        dialogBinding.btnSubmitRating.setOnClickListener {
+            val rating = dialogBinding.sliderRating.value.toInt()
+            submitRating(item, rating, dialog)
+        }
+
+        dialogBinding.btnCancelRating.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun submitRating(item: OrderItem, rating: Int, dialog: BottomSheetDialog) {
+        lifecycleScope.launch {
+            try {
+                ratingRepo.submitRating(orderId, item.menuItemId, rating)
+                toast("Rating submitted successfully!")
+                dialog.dismiss()
+
+                // Refresh existing ratings
+                currentOrder?.let { loadExistingRatings(it) }
+            } catch (e: Exception) {
+                toast("Failed to submit rating: ${e.message}")
+            }
         }
     }
 
@@ -145,9 +216,10 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
         }
     }
 
-    // Simple adapter for order items
+    // Adapter for order items with optional rating support
     inner class OrderItemsAdapter(
-        private val items: List<OrderItem>
+        private val items: List<OrderItem>,
+        private val showRating: Boolean = false
     ) : RecyclerView.Adapter<OrderItemsAdapter.ViewHolder>() {
 
         inner class ViewHolder(val binding: ItemOrderDetailBinding) : RecyclerView.ViewHolder(binding.root)
@@ -164,6 +236,29 @@ class StudentOrderDetailsActivity : AppCompatActivity() {
             holder.binding.tvItemName.text = item.name
             holder.binding.tvQuantity.text = "x${item.quantity}"
             holder.binding.tvPrice.text = "₹${item.totalPrice.toInt()}"
+
+            // Show rating section only for completed orders
+            if (showRating) {
+                holder.binding.ratingSection.visibility = View.VISIBLE
+
+                val existingRating = existingRatings[item.menuItemId]
+                if (existingRating != null) {
+                    holder.binding.tvExistingRating.text = "$existingRating/10"
+                    holder.binding.tvExistingRating.visibility = View.VISIBLE
+                    holder.binding.tvYourRating.visibility = View.VISIBLE
+                    holder.binding.btnRate.text = "Edit"
+                } else {
+                    holder.binding.tvExistingRating.visibility = View.GONE
+                    holder.binding.tvYourRating.text = "Not rated yet"
+                    holder.binding.btnRate.text = "Rate"
+                }
+
+                holder.binding.btnRate.setOnClickListener {
+                    showRatingDialog(item)
+                }
+            } else {
+                holder.binding.ratingSection.visibility = View.GONE
+            }
         }
 
         override fun getItemCount() = items.size
