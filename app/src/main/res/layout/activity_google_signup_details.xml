@@ -107,6 +107,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Mobile Number"
                         android:textColor="#111827"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="phone"
                         android:maxLength="10" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -144,6 +145,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Library Card Number"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="text" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -165,6 +167,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Department (e.g., Computer Science)"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="text" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -186,6 +189,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Division (e.g., A, B, C)"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="text" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -233,6 +237,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Password (min 6 characters)"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -255,6 +260,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Confirm Password"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
 

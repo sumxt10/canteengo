@@ -105,6 +105,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Full Name"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="textPersonName" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -124,7 +125,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Library Card Number"
-                        android:textColor="@color/cg_text_dark" />
+                        android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <LinearLayout
@@ -150,7 +152,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:hint="Department"
-                            android:textColor="@color/cg_text_dark" />
+                            android:textColor="@color/cg_text_dark"
+                            android:textColorHint="@color/cg_text_secondary" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -170,7 +173,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:hint="Division"
-                            android:textColor="@color/cg_text_dark" />
+                            android:textColor="@color/cg_text_dark"
+                            android:textColorHint="@color/cg_text_secondary" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
@@ -193,6 +197,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Mobile Number"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="phone"
                         android:maxLength="10" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -229,6 +234,7 @@
                         android:layout_height="wrap_content"
                         android:hint="@string/email"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="textEmailAddress" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -251,6 +257,7 @@
                         android:layout_height="wrap_content"
                         android:hint="@string/password"
                         android:textColor="@color/cg_text_dark"
+                        android:textColorHint="@color/cg_text_secondary"
                         android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
 

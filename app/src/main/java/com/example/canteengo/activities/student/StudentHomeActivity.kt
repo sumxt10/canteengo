@@ -151,6 +151,9 @@ class StudentHomeActivity : AppCompatActivity() {
                 intent.putExtra("menu_item_rating_sum", menuItem.totalRatingSum)
                 intent.putExtra("menu_item_rating_count", menuItem.totalRatingCount)
                 startActivity(intent)
+            },
+            onCartChanged = {
+                updateCartBadge()
             }
         )
 

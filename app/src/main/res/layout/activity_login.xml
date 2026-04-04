@@ -80,6 +80,7 @@
                 android:layout_height="wrap_content"
                 android:hint="@string/email"
                 android:textColor="@color/cg_text_dark"
+                android:textColorHint="@color/cg_text_secondary"
                 android:inputType="textEmailAddress" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -97,6 +98,7 @@
                 android:layout_height="wrap_content"
                 android:hint="@string/password"
                 android:textColor="@color/cg_text_dark"
+                android:textColorHint="@color/cg_text_secondary"
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -124,6 +126,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:text="Create Account"
+            android:textColor="@color/cg_text_dark"
+            app:strokeColor="@color/cg_text_secondary"
             app:cornerRadius="16dp" />
 
         <include
@@ -140,7 +144,7 @@
             android:gravity="center"
             android:visibility="gone"
             android:text=""
-            android:textColor="@color/cg_info"
+            android:textColor="@color/cg_text_dark"
             android:textStyle="bold" />
 
     </LinearLayout>

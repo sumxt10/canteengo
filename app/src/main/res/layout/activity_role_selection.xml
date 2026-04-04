@@ -16,13 +16,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivLogo"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            android:src="@drawable/ic_food_placeholder"
-            app:tint="@color/white"
+            android:src="@drawable/logo"
+            android:scaleType="centerCrop"
             android:contentDescription="Logo"
+            app:shapeAppearanceOverlay="@style/CircleImageView"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 

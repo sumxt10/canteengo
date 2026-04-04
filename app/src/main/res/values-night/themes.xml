@@ -1,7 +1,23 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.CanteenGo" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="colorPrimary">@color/cg_primary</item>
+        <item name="colorOnPrimary">@color/cg_on_primary</item>
+        <item name="colorSecondary">@color/cg_secondary</item>
+        <item name="colorOnSecondary">@color/cg_on_secondary</item>
+        <item name="android:windowBackground">@color/cg_background</item>
+        <item name="colorSurface">@color/cg_surface</item>
+
+        <item name="android:textColorPrimary">@color/cg_text_dark</item>
+        <item name="android:textColorSecondary">@color/cg_text_secondary</item>
+        <item name="android:textColorHint">@color/cg_text_secondary</item>
+        <item name="android:editTextColor">@color/cg_text_dark</item>
+
+        <item name="textInputStyle">@style/Widget.CanteenGo.TextInputLayout</item>
+    </style>
+
+    <style name="Widget.CanteenGo.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="hintTextColor">@color/cg_text_secondary</item>
+        <item name="boxStrokeColor">@color/cg_primary</item>
     </style>
 </resources>

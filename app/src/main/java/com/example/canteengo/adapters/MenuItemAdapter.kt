@@ -14,7 +14,8 @@ import com.example.canteengo.models.MenuItem
 
 class MenuItemAdapter(
     private val onAddClick: (MenuItem) -> Unit,
-    private val onItemClick: (MenuItem) -> Unit
+    private val onItemClick: (MenuItem) -> Unit,
+    private val onCartChanged: () -> Unit
 ) : ListAdapter<MenuItem, MenuItemAdapter.MenuItemViewHolder>(MenuItemDiffCallback()) {
 
     inner class MenuItemViewHolder(
@@ -55,17 +56,23 @@ class MenuItemAdapter(
 
             binding.btnAdd.setOnClickListener {
                 onAddClick(item)
-                notifyItemChanged(adapterPosition)
+                onCartChanged()
+                val pos = adapterPosition
+                if (pos != RecyclerView.NO_POSITION) notifyItemChanged(pos)
             }
 
             binding.btnMinus.setOnClickListener {
                 CartManager.decrementQuantity(item.id)
-                notifyItemChanged(adapterPosition)
+                onCartChanged()
+                val pos = adapterPosition
+                if (pos != RecyclerView.NO_POSITION) notifyItemChanged(pos)
             }
 
             binding.btnPlus.setOnClickListener {
                 CartManager.incrementQuantity(item.id)
-                notifyItemChanged(adapterPosition)
+                onCartChanged()
+                val pos = adapterPosition
+                if (pos != RecyclerView.NO_POSITION) notifyItemChanged(pos)
             }
 
             binding.root.setOnClickListener {

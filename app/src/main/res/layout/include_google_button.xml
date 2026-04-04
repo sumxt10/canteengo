@@ -6,6 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:text="Continue with Google"
+    android:textColor="@color/cg_text_dark"
+    app:strokeColor="@color/cg_text_secondary"
     app:icon="@drawable/ic_google"
     app:iconTint="@null"
     app:cornerRadius="16dp" />
