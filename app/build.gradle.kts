@@ -30,6 +30,12 @@ android {
             )
         }
     }
+    packaging {
+        resources {
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/DEPENDENCIES"
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -51,6 +57,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.messaging.ktx)
 
     // Google Sign-In (Credential Manager)
     implementation(libs.credentials)
@@ -62,6 +69,9 @@ dependencies {
 
     // Image loading
     implementation(libs.coil)
+
+    // FCM HTTP v1 sender auth
+    implementation(libs.google.auth.oauth2.http)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

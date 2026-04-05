@@ -15,6 +15,7 @@ import com.example.canteengo.models.OrderStatus
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
 import com.example.canteengo.utils.CacheManager
+import com.example.canteengo.utils.FcmHttpV1Sender
 import com.example.canteengo.utils.toast
 import com.google.android.material.tabs.TabLayout
 import com.google.firebase.firestore.FirebaseFirestore
@@ -274,6 +275,7 @@ class AdminOrdersActivity : AppCompatActivity() {
                         return@launch
                     }
                     orderRepo.acceptOrderAtomically(order.orderId, cachedAdminPhone, cachedAdminName)
+                    sendOrderStatusPush(order, newStatus)
                     toast("Order ${order.token} accepted successfully!")
                 } else {
                     // For other status changes, include admin phone for ownership verification
@@ -282,6 +284,7 @@ class AdminOrdersActivity : AppCompatActivity() {
                     } else {
                         orderRepo.updateOrderStatus(order.orderId, newStatus)
                     }
+                    sendOrderStatusPush(order, newStatus)
                     toast("Order ${order.token} updated to ${newStatus.displayName}")
                 }
                 // No need to reload - real-time listener will update automatically
@@ -290,6 +293,25 @@ class AdminOrdersActivity : AppCompatActivity() {
                 val errorMessage = e.message ?: "Failed to update order"
                 toast(errorMessage)
             }
+        }
+    }
+
+    private suspend fun sendOrderStatusPush(order: Order, newStatus: OrderStatus) {
+        if (newStatus !in setOf(OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.REJECTED)) return
+        if (order.studentId.isBlank()) return
+
+        val token = userRepo.getUserFcmTokenByUid(order.studentId)
+        if (token.isNullOrBlank()) return
+
+        runCatching {
+            FcmHttpV1Sender.sendOrderStatus(
+                context = applicationContext,
+                studentFcmToken = token,
+                recipientUid = order.studentId,
+                orderId = order.orderId,
+                status = newStatus.name,
+                adminName = cachedAdminName.ifBlank { "Admin" }
+            )
         }
     }
 }

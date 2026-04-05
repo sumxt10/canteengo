@@ -1,8 +1,13 @@
 package com.example.canteengo.activities
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.canteengo.activities.admin.AdminDashboardActivity
 import com.example.canteengo.activities.student.StudentHomeActivity
@@ -10,6 +15,7 @@ import com.example.canteengo.databinding.ActivitySplashBinding
 import com.example.canteengo.models.UserRole
 import com.example.canteengo.repository.AuthRepository
 import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.FcmTokenManager
 import com.example.canteengo.utils.OnboardingPrefs
 import com.example.canteengo.utils.toast
 import kotlinx.coroutines.launch
@@ -26,6 +32,8 @@ class SplashActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        requestNotificationPermissionIfNeeded()
 
         // Light splash with immediate routing.
         lifecycleScope.launch {
@@ -47,6 +55,7 @@ class SplashActivity : AppCompatActivity() {
         }
 
         try {
+            runCatching { FcmTokenManager.syncTokenForLoggedInUser(userRepo) }
             val role = userRepo.getCurrentUserRole()
             when (role) {
                 UserRole.STUDENT -> {
@@ -70,5 +79,15 @@ class SplashActivity : AppCompatActivity() {
             startActivity(Intent(this, OnboardingActivity::class.java))
             finish()
         }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
     }
 }

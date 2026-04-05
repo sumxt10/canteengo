@@ -233,6 +233,32 @@ class UserRepository {
         db.collection(USERS).document(user.uid).update(data).await()
     }
 
+    suspend fun upsertCurrentUserFcmToken(token: String) {
+        if (token.isBlank()) return
+        val auth = authOrNull() ?: return
+        val db = dbOrNull() ?: return
+        val user = auth.currentUser ?: return
+
+        val data = hashMapOf<String, Any>(
+            FIELD_FCM_TOKEN to token,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp()
+        )
+
+        db.collection(USERS).document(user.uid).set(data, SetOptions.merge()).await()
+    }
+
+    suspend fun getUserFcmTokenByUid(uid: String): String? {
+        if (uid.isBlank()) return null
+        val db = dbOrNull() ?: return null
+
+        return try {
+            val doc = db.collection(USERS).document(uid).get().await()
+            doc.getString(FIELD_FCM_TOKEN)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     /**
      * Optimized method to get user role and mobile status in a single Firestore read.
      * Returns a data class with both values to avoid multiple network calls.
@@ -275,6 +301,7 @@ class UserRepository {
         private const val FIELD_LIBRARY_CARD_NUMBER = "libraryCardNumber"
         private const val FIELD_DEPARTMENT = "department"
         private const val FIELD_DIVISION = "division"
+        private const val FIELD_FCM_TOKEN = "fcmToken"
         private const val FIELD_IS_ACTIVE = "isActive"
         private const val FIELD_CREATED_AT = "createdAt"
         private const val FIELD_UPDATED_AT = "updatedAt"

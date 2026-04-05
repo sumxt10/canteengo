@@ -45,6 +45,10 @@ app/google-services.json
 *-firebase-adminsdk-*.json
 firebase-admin-sdk*.json
 serviceAccountKey.json
+service-account.json
+app/src/main/assets/service-account.json
+app/src/debug/assets/service-account.json
+**/service-account.json
 
 # ============================================================================
 # KEYSTORE / SIGNING FILES (SENSITIVE)

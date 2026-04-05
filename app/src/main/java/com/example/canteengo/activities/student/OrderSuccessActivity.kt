@@ -67,6 +67,7 @@ class OrderSuccessActivity : AppCompatActivity() {
         return bitmap
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // Go back to home instead of previous screen
         val intent = Intent(this, StudentHomeActivity::class.java)

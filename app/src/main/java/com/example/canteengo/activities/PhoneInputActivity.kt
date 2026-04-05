@@ -91,6 +91,7 @@ class PhoneInputActivity : AppCompatActivity() {
         binding.btnContinue.isEnabled = !loading
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // Don't allow going back without entering phone number
         toast("Please enter your mobile number to continue")
