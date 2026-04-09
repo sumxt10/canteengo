@@ -33,6 +33,10 @@ build/
 # Local configuration file (contains SDK path)
 local.properties
 
+# Local presentation/setup notes (keep local-only)
+friend_requirement
+implementation
+
 # ============================================================================
 # FIREBASE / GOOGLE SERVICES (SENSITIVE - DO NOT COMMIT)
 # ============================================================================
