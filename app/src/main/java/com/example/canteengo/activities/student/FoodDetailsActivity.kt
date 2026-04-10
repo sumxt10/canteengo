@@ -8,13 +8,17 @@ import com.example.canteengo.R
 import com.example.canteengo.databinding.ActivityFoodDetailsBinding
 import com.example.canteengo.models.CartManager
 import com.example.canteengo.models.MenuItem
+import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.utils.toast
+import com.google.firebase.firestore.ListenerRegistration
 import java.text.DecimalFormat
 
 class FoodDetailsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFoodDetailsBinding
     private lateinit var menuItem: MenuItem
+    private val menuRepository = MenuRepository()
+    private var menuItemListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,13 +27,19 @@ class FoodDetailsActivity : AppCompatActivity() {
 
         loadMenuItem()
         setupUI()
-        setupRatingDisplay()
+        bindMenuItemDetails()
         updateCartState()
+        startRealtimeMenuItemListener()
     }
 
     override fun onResume() {
         super.onResume()
         updateCartState()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        menuItemListener?.remove()
     }
 
     private fun loadMenuItem() {
@@ -50,34 +60,6 @@ class FoodDetailsActivity : AppCompatActivity() {
     private fun setupUI() {
         binding.btnBack.setOnClickListener { finish() }
 
-        // Set item details
-        binding.tvName.text = menuItem.name
-        binding.tvDescription.text = menuItem.description
-        binding.tvPrice.text = "₹${menuItem.price.toInt()}"
-        binding.tvCategory.text = menuItem.category.replace("_", " ")
-
-        // Load image if available
-        if (menuItem.imageUrl.isNotEmpty()) {
-            binding.ivFoodImage.load(menuItem.imageUrl) {
-                crossfade(true)
-                placeholder(R.drawable.ic_food_item_placeholder)
-                error(R.drawable.ic_food_item_placeholder)
-            }
-        }
-
-        // Veg badge
-        binding.ivVegBadge.setImageResource(
-            if (menuItem.isVeg) R.drawable.ic_veg_badge else R.drawable.ic_nonveg_badge
-        )
-        binding.tvVegStatus.text = if (menuItem.isVeg) "Vegetarian" else "Non-Vegetarian"
-
-        // Availability
-        if (!menuItem.isAvailable) {
-            binding.btnAddToCart.isEnabled = false
-            binding.btnAddToCart.text = "Currently Unavailable"
-            binding.btnPlus.isEnabled = false
-        }
-
         // Add to cart button
         binding.btnAddToCart.setOnClickListener {
             CartManager.addItem(menuItem)
@@ -97,6 +79,53 @@ class FoodDetailsActivity : AppCompatActivity() {
         }
     }
 
+    private fun bindMenuItemDetails() {
+        binding.tvName.text = menuItem.name
+        binding.tvDescription.text = menuItem.description
+        binding.tvPrice.text = "₹${menuItem.price.toInt()}"
+        binding.tvCategory.text = menuItem.category.replace("_", " ")
+
+        if (menuItem.imageUrl.isNotEmpty()) {
+            binding.ivFoodImage.load(menuItem.imageUrl) {
+                crossfade(true)
+                placeholder(R.drawable.ic_food_item_placeholder)
+                error(R.drawable.ic_food_item_placeholder)
+            }
+        } else {
+            binding.ivFoodImage.setImageResource(R.drawable.ic_food_item_placeholder)
+        }
+
+        binding.ivVegBadge.setImageResource(
+            if (menuItem.isVeg) R.drawable.ic_veg_badge else R.drawable.ic_nonveg_badge
+        )
+        binding.tvVegStatus.text = if (menuItem.isVeg) "Vegetarian" else "Non-Vegetarian"
+
+        val isAvailable = menuItem.isAvailable
+        binding.btnAddToCart.isEnabled = isAvailable
+        binding.btnAddToCart.text = if (isAvailable) "Add to Cart" else "Currently Unavailable"
+        binding.btnPlus.isEnabled = isAvailable
+
+        setupRatingDisplay()
+        updateCartState()
+    }
+
+    private fun startRealtimeMenuItemListener() {
+        menuItemListener?.remove()
+        menuItemListener = menuRepository.observeMenuItemById(
+            itemId = menuItem.id,
+            onUpdate = { latestItem ->
+                if (latestItem == null) {
+                    toast("This menu item is no longer available")
+                    finish()
+                    return@observeMenuItemById
+                }
+
+                menuItem = latestItem
+                bindMenuItemDetails()
+            }
+        )
+    }
+
     private fun updateCartState() {
         val quantity = CartManager.getQuantity(menuItem.id)
 
@@ -108,6 +137,7 @@ class FoodDetailsActivity : AppCompatActivity() {
             val itemTotal = menuItem.price * quantity
             binding.tvItemTotal.text = "Item Total: ₹${itemTotal.toInt()}"
             binding.tvItemTotal.visibility = View.VISIBLE
+            binding.btnPlus.isEnabled = menuItem.isAvailable
         } else {
             binding.btnAddToCart.visibility = View.VISIBLE
             binding.quantityContainer.visibility = View.GONE

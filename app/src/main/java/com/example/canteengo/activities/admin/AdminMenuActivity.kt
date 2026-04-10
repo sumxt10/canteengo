@@ -12,6 +12,7 @@ import com.example.canteengo.databinding.ActivityAdminMenuBinding
 import com.example.canteengo.models.MenuItem
 import com.example.canteengo.repository.MenuRepository
 import com.example.canteengo.utils.toast
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 
 class AdminMenuActivity : AppCompatActivity() {
@@ -19,6 +20,7 @@ class AdminMenuActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAdminMenuBinding
     private val menuRepo = MenuRepository()
     private lateinit var menuAdapter: AdminMenuAdapter
+    private var menuListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,12 +31,12 @@ class AdminMenuActivity : AppCompatActivity() {
         setupRecyclerView()
         setupBottomNav()
         setupFab()
-        loadMenuItems()
+        startRealtimeMenuListener()
     }
 
-    override fun onResume() {
-        super.onResume()
-        loadMenuItems()
+    override fun onDestroy() {
+        super.onDestroy()
+        menuListener?.remove()
     }
 
     private fun setupToolbar() {
@@ -95,13 +97,12 @@ class AdminMenuActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadMenuItems() {
-        lifecycleScope.launch {
-            try {
-                binding.progressBar.visibility = View.VISIBLE
-                val items = menuRepo.getAllMenuItems()
-
-                // Clear all toggling states before updating list
+    private fun startRealtimeMenuListener() {
+        binding.progressBar.visibility = View.VISIBLE
+        menuListener?.remove()
+        menuListener = menuRepo.observeAllMenuItems(
+            onUpdate = { items ->
+                binding.progressBar.visibility = View.GONE
                 menuAdapter.clearAllTogglingStates()
 
                 if (items.isEmpty()) {
@@ -112,12 +113,12 @@ class AdminMenuActivity : AppCompatActivity() {
                     binding.emptyState.visibility = View.GONE
                     menuAdapter.submitList(items)
                 }
-            } catch (e: Exception) {
-                toast("Failed to load menu: ${e.message}")
-            } finally {
+            },
+            onError = { e ->
                 binding.progressBar.visibility = View.GONE
+                toast("Failed to sync menu: ${e.message}")
             }
-        }
+        )
     }
 
     private fun toggleItemAvailability(item: MenuItem, isAvailable: Boolean) {
@@ -142,7 +143,6 @@ class AdminMenuActivity : AppCompatActivity() {
                 toast("Failed to update: ${e.message}")
                 // Clear toggling state and reload to reset switch on error
                 menuAdapter.clearTogglingState(item.id)
-                loadMenuItems()
             }
         }
     }
@@ -152,7 +152,6 @@ class AdminMenuActivity : AppCompatActivity() {
             try {
                 menuRepo.deleteMenuItem(item.id)
                 toast("${item.name} deleted")
-                loadMenuItems()
             } catch (e: Exception) {
                 toast("Failed to delete: ${e.message}")
             }

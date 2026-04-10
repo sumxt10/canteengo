@@ -1,8 +1,14 @@
 package com.example.canteengo.activities.student
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.canteengo.databinding.ActivityPickupTimeBinding
 import com.example.canteengo.models.CartManager
@@ -10,6 +16,7 @@ import com.example.canteengo.models.Order
 import com.example.canteengo.models.OrderItem
 import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
+import com.example.canteengo.utils.LocationGatekeeper
 import com.example.canteengo.utils.toast
 import kotlinx.coroutines.launch
 
@@ -21,6 +28,27 @@ class PickupTimeActivity : AppCompatActivity() {
 
     private var selectedTime = "ASAP"
     private var isLoading = false
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (granted) {
+            verifyLocationAndPlaceOrder()
+        } else {
+            val canAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) ||
+                shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
+
+            if (canAskAgain) {
+                toast("Location permission is required to place order near canteen")
+            } else {
+                toast("Location permission is permanently denied. Enable it from app settings.")
+                openAppSettings()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,7 +98,56 @@ class PickupTimeActivity : AppCompatActivity() {
     private fun setupConfirmButton() {
         binding.btnConfirm.setOnClickListener {
             if (isLoading) return@setOnClickListener
-            placeOrder()
+            verifyLocationAndPlaceOrder()
+        }
+    }
+
+    private fun verifyLocationAndPlaceOrder() {
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
+                checkOrderRadiusAndPlace()
+            }
+
+            shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                toast("Please allow location access to confirm order near canteen")
+                requestLocationPermissions()
+            }
+
+            else -> {
+                requestLocationPermissions()
+            }
+        }
+    }
+
+    private fun requestLocationPermissions() {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
+    }
+
+    private fun checkOrderRadiusAndPlace() {
+        when (val result = LocationGatekeeper.verifyStudentWithinOrderRadius(this)) {
+            is LocationGatekeeper.Result.Allowed -> placeOrder()
+            is LocationGatekeeper.Result.TooFar -> {
+                toast("You are ${result.distanceMeters.toInt()}m away. Order allowed only within 100m of canteen.")
+            }
+            LocationGatekeeper.Result.PermissionMissing -> {
+                toast("Location permission is required to place order")
+            }
+            LocationGatekeeper.Result.LocationUnavailable -> {
+                toast("Could not fetch your location. Please enable GPS and try again.")
+            }
         }
     }
 

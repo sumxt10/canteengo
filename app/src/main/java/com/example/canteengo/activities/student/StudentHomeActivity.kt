@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -21,6 +20,7 @@ import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
 import com.example.canteengo.utils.CacheManager
 import com.example.canteengo.utils.toast
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 
 class StudentHomeActivity : AppCompatActivity() {
@@ -37,6 +37,7 @@ class StudentHomeActivity : AppCompatActivity() {
     private var selectedCategory: FoodCategory = FoodCategory.SNACKS
     private var currentSearchQuery: String = ""
     private var showAllItems: Boolean = false
+    private var menuListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +54,7 @@ class StudentHomeActivity : AppCompatActivity() {
         // Load cached data immediately for smooth UI, then refresh from network
         loadCachedDataFirst()
         loadUserData()
-        loadMenuItems()
+        startRealtimeMenuListener()
         loadSpendingStats()
     }
 
@@ -85,6 +86,11 @@ class StudentHomeActivity : AppCompatActivity() {
         updateCartBadge()
         menuItemAdapter.refreshCart()
         loadSpendingStats()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        menuListener?.remove()
     }
 
     private fun setupUI() {
@@ -205,19 +211,18 @@ class StudentHomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadMenuItems() {
-        lifecycleScope.launch {
-            try {
-                val items = menuRepository.getAllMenuItems()
-                // Cache menu items for smoother navigation
+    private fun startRealtimeMenuListener() {
+        menuListener?.remove()
+        menuListener = menuRepository.observeAllMenuItems(
+            onUpdate = { items ->
                 CacheManager.cacheMenuItems(items)
-
                 allMenuItems = items.filter { it.isAvailable }
                 filterMenuItems()
-            } catch (e: Exception) {
-                toast("Failed to load menu: ${e.message}")
+            },
+            onError = {
+                toast("Failed to sync menu changes")
             }
-        }
+        )
     }
 
     private fun filterMenuItems() {

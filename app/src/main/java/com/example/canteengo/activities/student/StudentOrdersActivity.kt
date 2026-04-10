@@ -26,7 +26,7 @@ class StudentOrdersActivity : AppCompatActivity() {
         setupToolbar()
         setupRecyclerView()
         setupBottomNav()
-        loadOrders()
+        startRealtimeOrdersListener()
     }
 
     private fun setupToolbar() {
@@ -70,13 +70,11 @@ class StudentOrdersActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadOrders() {
+    private fun startRealtimeOrdersListener() {
         binding.progressBar.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            try {
-                val orders = orderRepository.getStudentOrders()
-
+            orderRepository.observeStudentOrders().collect { orders ->
                 binding.progressBar.visibility = View.GONE
 
                 if (orders.isEmpty()) {
@@ -87,9 +85,6 @@ class StudentOrdersActivity : AppCompatActivity() {
                     binding.rvOrders.visibility = View.VISIBLE
                     orderAdapter.submitList(orders)
                 }
-            } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
-                binding.emptyState.visibility = View.VISIBLE
             }
         }
     }

@@ -4,6 +4,7 @@ import com.example.canteengo.models.FoodCategory
 import com.example.canteengo.models.MenuItem
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.tasks.await
 
 class MenuRepository {
@@ -27,6 +28,62 @@ class MenuRepository {
         } catch (e: Exception) {
             getSampleMenuItems()
         }
+    }
+
+    fun observeAllMenuItems(
+        onUpdate: (List<MenuItem>) -> Unit,
+        onError: (Exception) -> Unit = {}
+    ): ListenerRegistration? {
+        val db = dbOrNull()
+        if (db == null) {
+            onUpdate(getSampleMenuItems())
+            return null
+        }
+
+        return db.collection(MENU_ITEMS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+
+                val items = snapshot?.documents.orEmpty().mapNotNull { doc ->
+                    doc.toObject(MenuItem::class.java)?.copy(id = doc.id)
+                }
+                onUpdate(items)
+            }
+    }
+
+    fun observeMenuItemById(
+        itemId: String,
+        onUpdate: (MenuItem?) -> Unit,
+        onError: (Exception) -> Unit = {}
+    ): ListenerRegistration? {
+        if (itemId.isBlank()) {
+            onUpdate(null)
+            return null
+        }
+
+        val db = dbOrNull() ?: run {
+            onUpdate(null)
+            return null
+        }
+
+        return db.collection(MENU_ITEMS)
+            .document(itemId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+
+                val item = if (snapshot != null && snapshot.exists()) {
+                    snapshot.toObject(MenuItem::class.java)?.copy(id = snapshot.id)
+                } else {
+                    null
+                }
+                onUpdate(item)
+            }
     }
 
     suspend fun getMenuItemsByCategory(category: FoodCategory): List<MenuItem> {

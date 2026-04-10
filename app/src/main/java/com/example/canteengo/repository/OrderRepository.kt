@@ -155,6 +155,35 @@ class OrderRepository {
         }
     }
 
+    fun observeStudentOrders(): Flow<List<Order>> = callbackFlow {
+        val db = dbOrNull()
+        val auth = authOrNull()
+        val uid = auth?.currentUser?.uid
+
+        if (db == null || uid.isNullOrBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = db.collection(ORDERS)
+            .whereEqualTo("studentId", uid)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val orders = snapshot?.documents.orEmpty().mapNotNull { doc ->
+                    mapToOrder(doc.id, doc.data ?: emptyMap())
+                }
+                trySend(orders)
+            }
+
+        awaitClose { listener.remove() }
+    }
+
     suspend fun getSpendingStats(): SpendingStats {
         val orders = getStudentOrders()
         if (orders.isEmpty()) return SpendingStats()
