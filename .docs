@@ -1,0 +1,493 @@
+# CanteenGo Deep-Dive Documentation (Presentation Notes)
+
+This document explains the app as a full working system, not just an overview. It is written in a story + workflow style so you can present both product flow and technical implementation.
+
+---
+
+## 1) What CanteenGo is solving
+
+In a college canteen, students usually waste time standing in queues and admins (canteen staff) struggle to coordinate order states manually. CanteenGo digitizes this with:
+- role-based login (Student/Admin),
+- live menu + cart + order lifecycle,
+- QR/token-based collection,
+- real-time status updates,
+- push notifications for key order states,
+- location-gated ordering (student must be near canteen).
+
+Core stack:
+- Android (Kotlin + XML + ViewBinding)
+- Firebase Auth (email/password + Google)
+- Firestore (users, menu_items, orders, ratings)
+- Firebase Cloud Messaging (receive in student app)
+- HTTP v1 FCM sender called from admin app
+- Cloudinary for menu image upload
+- ZXing for QR generation
+
+---
+
+## 2) Entry point and global app behavior
+
+### 2.1 App startup lifecycle
+- `AndroidManifest.xml`
+  - `SplashActivity` is launcher.
+  - App icon/round icon are `@drawable/logo`.
+  - Permissions include internet, notifications, coarse/fine location.
+  - FCM service is registered: `CanteenGoMessagingService`.
+- `CanteenGoApp`
+  - Initializes cart persistence (`CartManager.initialize(this)`).
+  - Tries `FirebaseApp.initializeApp(this)` inside `runCatching` to avoid startup crash if config missing.
+
+### 2.2 Splash routing logic
+- `SplashActivity.route()`:
+  1. If no authenticated user:
+     - If first-time flag not set -> `GetStartedActivity`
+     - Else -> `OnboardingActivity`
+  2. If user exists:
+     - Tries to sync FCM token (`FcmTokenManager.syncTokenForLoggedInUser(userRepo)`).
+     - Reads role from Firestore:
+       - STUDENT -> `StudentHomeActivity`
+       - ADMIN -> `AdminDashboardActivity`
+       - null role/incomplete doc -> `RoleSelectionActivity`
+
+### 2.3 One-time onboarding flags
+- `OnboardingPrefs` stores `get_started_seen` in shared prefs.
+
+---
+
+## 3) User Story A: First-time user onboarding + role decision
+
+### Story
+"I open the app for first time, see welcome/onboarding, choose whether I am Student or Admin, then login/signup accordingly."
+
+### Workflow
+1. `GetStartedActivity` -> mark first screen as seen.
+2. `OnboardingActivity` -> educational pager (browse, order, track).
+3. `RoleSelectionActivity`
+   - Student card saves role in `RolePrefs`, opens `StudentLoginActivity`.
+   - Admin card saves role in `RolePrefs`, opens `AdminLoginActivity`.
+
+`RolePrefs` is only temporary guidance before account role is permanently verified from Firestore.
+
+---
+
+## 4) User Story B: Authentication engine (Email + Google) with strict role safety
+
+Both student and admin login screens share similar architecture:
+- `AuthRepository` for Firebase authentication calls.
+- `UserRepository` for Firestore profile/role checks.
+- `NetworkUtils` for internet checks and friendly network errors.
+
+### 4.1 Email/password login
+- Flow in `StudentLoginActivity` / `AdminLoginActivity`:
+  1. Validate form.
+  2. Check internet (`NetworkUtils.isNetworkAvailable`).
+  3. Sign in via `authRepo.signIn`.
+  4. Read role from Firestore (`userRepo.getCurrentUserRole`).
+  5. Enforce role:
+     - student login refuses admin account,
+     - admin login refuses student account.
+  6. On mismatch: user is signed out immediately.
+
+This prevents cross-role access even if credentials are valid.
+
+### 4.2 Signup (email/password)
+- Student: `StudentSignupActivity`
+  - Collects name, library card, department, division, mobile, email, password.
+  - Creates Firebase auth user, then writes student profile to `users/{uid}`.
+- Admin: `AdminSignupActivity`
+  - Collects name, mobile, email, password.
+  - Creates Firebase auth user, then writes admin profile.
+
+### 4.3 Google sign-in + profile completion + credential linking
+- `GoogleSignInHelper`
+  - Uses Android Credential Manager + Google ID token -> Firebase credential sign-in.
+- After Google auth:
+  - App checks profile completeness via `userRepo.getUserProfileStatus()`.
+  - If missing details, opens `GoogleSignupDetailsActivity`.
+
+In `GoogleSignupDetailsActivity`:
+- Student and admin use different field sets.
+- It links email/password to the Google-authenticated account (`AuthRepository.linkEmailPasswordCredential`) so user can login with either method later.
+- Writes profile fields to Firestore.
+
+---
+
+## 5) User Story C: Student menu browsing and cart management
+
+### Story
+"As a student, I browse live menu, search/filter, add items, and cart count should reflect instantly."
+
+### Workflow in `StudentHomeActivity`
+1. Screen setup:
+   - horizontal category list (`CategoryAdapter`),
+   - grid menu list (`MenuItemAdapter`),
+   - bottom nav.
+2. Immediate cached render (smoother UX):
+   - cached profile, menu, spending stats from `CacheManager`.
+3. Live data:
+   - student profile from Firestore,
+   - realtime menu via `menuRepository.observeAllMenuItems(...)`.
+4. Filtering:
+   - category filter,
+   - text search (name/category/description),
+   - show-all toggle.
+5. Cart badge:
+   - uses `CartManager.itemCount` and bottom-nav badge.
+
+### Cart engine (`CartManager`)
+- In-memory list + persistence to shared preferences JSON (`canteengo_cart`).
+- Supports add/remove/update/increment/decrement.
+- Computes subtotal, 10% handling charge, total.
+- Cart survives app restart and device process death.
+- Cart clears only when:
+  - order placed successfully (`PickupTimeActivity`), or
+  - user manually removes/clears items, or
+  - logout path clears cart.
+
+### `FoodDetailsActivity`
+- Receives item data from intent and binds details.
+- Realtime listener on that specific menu item (`observeMenuItemById`) so availability/price/rating changes reflect live.
+- If item removed from backend, page exits with message.
+
+---
+
+## 6) User Story D: Order placement with location sensor gate
+
+### Story
+"As a student, I can place order only if I am within 100m radius of canteen."
+
+### Workflow in `PickupTimeActivity`
+1. Student picks pickup time (ASAP/15/30/45 mins).
+2. On confirm:
+   - checks location permission.
+   - if not granted -> launches permission request.
+   - if denied permanently -> directs user to app settings.
+3. If permission granted:
+   - `LocationGatekeeper.verifyStudentWithinOrderRadius(context)`.
+
+### `LocationGatekeeper` logic
+- Canteen coordinates hardcoded:
+  - Latitude: `19.0457`
+  - Longitude: `72.8892`
+- Allowed radius: `100.0 meters`.
+- Reads last known location from GPS/Network/Passive providers.
+- Computes distance with `Location.distanceBetween`.
+- Returns one of:
+  - `Allowed(distance)`
+  - `TooFar(distance)`
+  - `PermissionMissing`
+  - `LocationUnavailable`
+
+### Place order execution
+- Builds `Order` from cart items + profile.
+- Uses `OrderRepository.placeOrder(order)`.
+- On success:
+  - clears cart,
+  - navigates to `OrderSuccessActivity`.
+
+---
+
+## 7) User Story E: Token + QR generation and order lifecycle
+
+### Story
+"After ordering, student gets token + QR and can track status until collection."
+
+### Order creation internals (`OrderRepository.placeOrder`)
+1. Creates Firestore doc ID first.
+2. Generates globally unique token using:
+   - Firestore transaction counter `counters/global_order_counter`,
+   - hash-based prefix,
+   - fallback hash/timestamp strategy if transaction fails.
+3. Generates QR string:
+   - `CANTEENGO_ORDER_{orderId}_{token}`
+4. Stores order with status `RECEIVED`, timestamps, billing, student details.
+
+### Student confirmation + tracking
+- `OrderSuccessActivity`
+  - displays token and QR bitmap (ZXing).
+- `OrderTrackingActivity`
+  - realtime listens to specific order via `orderRepository.observeOrder(orderId)`.
+  - maps statuses to timeline UI:
+    - RECEIVED -> ACCEPTED -> PREPARING -> READY -> COLLECTED
+    - REJECTED is terminal alternate path.
+
+### Student order details + rating
+- `StudentOrderDetailsActivity`
+  - shows full bill, QR, accepted admin phone, call button.
+  - if status = COLLECTED, enables item rating.
+- Rating uses `RatingRepository`:
+  - one rating per `orderId + menuItemId` composite key,
+  - transactional aggregate update on menu item:
+    - `totalRatingSum`, `totalRatingCount`,
+  - supports updating existing rating.
+
+---
+
+## 8) User Story F: Student order history behavior
+
+### Story
+"Student sees all their past orders in a live list and can open details."
+
+### Workflow
+- `StudentOrdersActivity` collects `orderRepository.observeStudentOrders()` and binds `OrderAdapter`.
+- `OrderRepository.observeStudentOrders()`:
+  - filters by current user UID (`studentId == uid`),
+  - maps docs to `Order`,
+  - sorts by `createdAt` descending before emitting.
+
+### Important recent behavior fix
+To avoid older records being hidden by strict server-side ordering constraints, student history is fetched/listened with studentId filter and then sorted client-side.
+
+---
+
+## 9) User Story G: Admin dashboard and real-time operations
+
+### Story
+"As admin, I see live order queue, process statuses, and synchronize instantly with other admins."
+
+### `AdminDashboardActivity`
+- Loads/caches admin profile for greeting.
+- Seeds menu once if empty (`menuRepo.seedMenuItems()`).
+- Realtime orders listener:
+  - currently constrained to last 7 days on dashboard (`createdAt >= sevenDaysAgo`),
+  - updates metrics:
+    - today orders,
+    - pending orders,
+    - today earnings (based on COLLECTED).
+- Shows recent 5 orders.
+
+### `AdminOrdersActivity`
+- Realtime all-order listener ordered by createdAt descending.
+- Tab filters:
+  - New (RECEIVED and unassigned),
+  - Preparing (ACCEPTED/PREPARING),
+  - Ready,
+  - Completed (COLLECTED/REJECTED).
+
+### Race-condition protection
+When admin accepts an order:
+- `OrderRepository.acceptOrderAtomically(...)` runs Firestore transaction.
+- Accept allowed only when:
+  - status is RECEIVED,
+  - `acceptedByAdminPhone` empty.
+- Prevents two admins claiming same order simultaneously.
+
+### Ownership checks for later status transitions
+- `updateOrderStatusWithAdminPhone(...)` ensures only the admin who accepted it can continue status changes.
+
+### Admin order details
+- `AdminOrderDetailsActivity` observes individual order live and exposes action buttons based on current status.
+
+---
+
+## 10) User Story H: Admin menu management and live menu sync
+
+### Story
+"Admin can add/edit/delete items and toggle availability; students should see changes immediately without manual refresh."
+
+### `AdminMenuActivity`
+- Uses realtime `observeAllMenuItems` listener.
+- Supports:
+  - availability toggle (`menuRepo.toggleAvailability`),
+  - edit flow (`AddEditMenuItemActivity`),
+  - delete item.
+- UI updates smoothly using list diff + local state handling.
+
+### `AddEditMenuItemActivity`
+- Handles item create/edit fields:
+  - name, description, price, category, veg flag, image.
+- Image upload path:
+  - picks image URI,
+  - uploads multipart request to Cloudinary unsigned preset,
+  - saves returned `secure_url` to Firestore.
+
+Student side menu is connected to realtime listener, so additions/removals/availability changes are reflected automatically.
+
+---
+
+## 11) Push notifications architecture (FCM)
+
+### Goal
+Student gets phone-level notification when admin changes order status to:
+- ACCEPTED
+- PREPARING
+- READY
+- REJECTED
+
+### 11.1 Token lifecycle
+- `FcmTokenManager.syncTokenForLoggedInUser(userRepository)`
+  - fetches token from `FirebaseMessaging`, writes to user doc as `fcmToken`.
+- `CanteenGoMessagingService.onNewToken`
+  - updates token on refresh events.
+
+### 11.2 Sending notification (outbound)
+- Sender utility: `FcmHttpV1Sender`.
+- Trigger points:
+  - `AdminDashboardActivity` status update methods,
+  - `AdminOrdersActivity` status updates,
+  - `AdminOrderDetailsActivity` status updates.
+- Sender payload includes:
+  - `type=order_status`
+  - `recipientUid`
+  - `orderId`
+  - `status`
+  - `adminName`
+
+### 11.3 Receiving notification (inbound)
+- `CanteenGoMessagingService.onMessageReceived`:
+  - validates authenticated user,
+  - validates payload type,
+  - validates recipient UID (if present),
+  - allows only the target statuses.
+- Then calls `OrderStatusNotifier` to show system notification.
+
+### 11.4 Notification UX
+- Channel: `order_updates`.
+- Tap action opens `StudentOrderDetailsActivity` with `orderId`.
+- Android 13+ runtime permission (`POST_NOTIFICATIONS`) handled in splash.
+
+---
+
+## 12) Repositories and data contract (what is stored where)
+
+### 12.1 `users/{uid}`
+Typical fields:
+- `uid`, `role`, `name`, `email`, `mobile`, `isActive`
+- student-only: `libraryCardNumber`, `department`, `division`
+- push: `fcmToken`
+- timestamps: `createdAt`, `updatedAt`
+
+### 12.2 `menu_items/{id}`
+- `name`, `description`, `price`, `category`, `imageUrl`
+- `isVeg`, `isAvailable`
+- rating aggregates: `totalRatingSum`, `totalRatingCount`
+- `createdAt`
+
+### 12.3 `orders/{orderId}`
+- `token`, `studentId`, `studentName`
+- `items[]` with `menuItemId`, `name`, `price`, `quantity`, `totalPrice`
+- `subtotal`, `handlingCharge`, `totalAmount`
+- `pickupTime`, `status`
+- `acceptedByAdminPhone`, `acceptedByAdminName`
+- `qrString`, `createdAt`, `updatedAt`
+
+### 12.4 `ratings/{orderId_menuItemId}`
+- `studentId`, `orderId`, `menuItemId`, `rating`, timestamps
+
+### 12.5 `counters/global_order_counter`
+- `count` used for unique token sequence
+- `lastUpdated`
+
+---
+
+## 13) Performance and UX techniques in this codebase
+
+1. In-memory cache (`CacheManager`) for profile/menu/stats to reduce visible loading.
+2. Realtime listeners for orders/menu keep app in sync without refresh.
+3. DiffUtil adapters for smooth list updates.
+4. Cart persistence in SharedPreferences to survive app restarts.
+5. Role validation after auth to prevent wrong dashboard entry.
+6. Network checks + readable error messaging for poor connectivity.
+
+---
+
+## 14) Error handling patterns used
+
+- Most repository calls are wrapped in try/catch and return safe defaults (`emptyList`, null).
+- UI layers show toast messages and avoid hard crashes.
+- Firebase init is guarded to prevent startup crash in partial setup environment.
+- FCM paths use `runCatching` for best-effort send/receive safety.
+
+---
+
+## 15) Security and deployment reality (important for viva)
+
+### What is currently implemented
+- Firebase auth + role checks for access separation.
+- Atomic order acceptance transaction to avoid admin race conditions.
+- Notification delivery with targeted recipient UID/token.
+
+### Practical security caveat in current implementation
+- FCM HTTP v1 sender currently loads a service account JSON from app assets (`service-account.json`) for OAuth token generation.
+- This works functionally, but from production security perspective, private key in client app is risky.
+- For a production architecture, the sender should be moved to trusted backend/Cloud Function.
+
+For your presentation, you can say:
+- "Current demo version uses in-app sender to stay zero-cost and simple for project evaluation."
+- "Production recommendation: move FCM send operation to secure backend service."
+
+---
+
+## 16) Complete end-to-end workflow (presentation-ready narrative)
+
+### Student journey
+1. Open app -> Splash routes based on auth + onboarding state.
+2. Student logs in/signs up (email or Google).
+3. Student reaches Home -> menu loaded from cache then realtime Firestore sync.
+4. Student adds items -> cart badge updates instantly and persists locally.
+5. Student opens cart -> adjusts quantities -> proceeds to pickup selection.
+6. On confirm, app checks location permission + 100m radius condition.
+7. If allowed, order is written with unique token + QR payload.
+8. Student sees success screen with token/QR.
+9. Student can track order timeline in realtime.
+10. On status change by admin, student receives system push notification.
+11. After collection, student can rate ordered menu items.
+
+### Admin journey
+1. Admin logs in/signs up (email or Google).
+2. Dashboard loads profile and listens to orders in realtime.
+3. Admin processes order status:
+   - RECEIVED -> ACCEPTED (atomic claim)
+   - ACCEPTED -> PREPARING
+   - PREPARING -> READY
+   - READY -> COLLECTED
+   - or REJECTED from RECEIVED
+4. On each important transition, app sends FCM push to that student.
+5. Admin menu management updates menu in realtime for students:
+   - add/edit/delete item,
+   - availability toggles.
+
+### Data consistency backbone
+- Firestore listeners + adapter diffing + repository mapping layer.
+- Transactional acceptance prevents duplicate handling by multiple admins.
+- UID-based role/doc mapping links auth identity with domain data.
+
+---
+
+## 17) Quick "what to explain if panel asks why this design"
+
+1. **Why Firestore realtime listeners?**
+   - Removes manual refresh dependency and makes canteen workflow live.
+2. **Why transaction for acceptance?**
+   - Multiple admins may click accept; transaction avoids race conflicts.
+3. **Why location gate?**
+   - Demonstrates sensor integration + prevents misuse of remote ordering.
+4. **Why cart persistence?**
+   - Better UX: cart survives accidental app closes.
+5. **Why rating aggregates on menu docs?**
+   - Efficient average calculation without full ratings scan every time.
+6. **Why both email and Google auth?**
+   - Flexible user onboarding and practical adoption.
+
+---
+
+## 18) One-line project pitch for presentation opening
+
+"CanteenGo is a role-based real-time college canteen automation app where students can discover menu, place location-validated orders, track status with QR/token, and receive push updates, while admins manage orders/menu live with conflict-safe operations."
+
+---
+
+## 19) If you need to demo in fixed 5-minute sequence
+
+1. Student login -> home realtime menu.
+2. Add items -> cart -> place order with location check.
+3. Show token + QR.
+4. In admin app accept and move status to preparing/ready.
+5. Show student device push notification + tracking screen update.
+6. Mark collected, open order details, submit rating.
+7. Toggle a menu item unavailable from admin and show instant disappearance in student menu.
+
+---
+
+End of deep-dive document.
+
