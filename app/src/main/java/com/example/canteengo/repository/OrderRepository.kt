@@ -131,13 +131,12 @@ class OrderRepository {
             // Try with ordering first (requires composite index)
             val snapshot = db.collection(ORDERS)
                 .whereEqualTo("studentId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 
             snapshot.documents.mapNotNull { doc ->
                 mapToOrder(doc.id, doc.data ?: emptyMap())
-            }
+            }.sortedByDescending { it.createdAt }
         } catch (e: Exception) {
             // Fallback: query without ordering if index doesn't exist
             try {
@@ -168,7 +167,6 @@ class OrderRepository {
 
         val listener = db.collection(ORDERS)
             .whereEqualTo("studentId", uid)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(emptyList())
@@ -177,7 +175,7 @@ class OrderRepository {
 
                 val orders = snapshot?.documents.orEmpty().mapNotNull { doc ->
                     mapToOrder(doc.id, doc.data ?: emptyMap())
-                }
+                }.sortedByDescending { it.createdAt }
                 trySend(orders)
             }
 

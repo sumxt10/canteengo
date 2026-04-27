@@ -18,6 +18,7 @@ import com.example.canteengo.repository.OrderRepository
 import com.example.canteengo.repository.UserRepository
 import com.example.canteengo.utils.LocationGatekeeper
 import com.example.canteengo.utils.toast
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class PickupTimeActivity : AppCompatActivity() {
@@ -171,7 +172,7 @@ class PickupTimeActivity : AppCompatActivity() {
                 }
 
                 val order = Order(
-                    studentId = profile?.uid ?: "",
+                    studentId = profile?.uid ?: FirebaseAuth.getInstance().currentUser?.uid.orEmpty(),
                     studentName = profile?.name ?: "Student",
                     items = orderItems,
                     subtotal = CartManager.subtotal,
